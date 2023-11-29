@@ -80,7 +80,7 @@ app.listen(PORT, () => {
 // For AcGroupMaster
 
 // GET all AcGroupMaster entries
-app.get('/', (req, res) => {
+app.get('/api/acgroups', (req, res) => {
   const query = 'SELECT * FROM AcGroupMaster';
   sql.query(query, (err, result) => {
     if (err) {
