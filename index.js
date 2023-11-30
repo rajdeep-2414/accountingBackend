@@ -3224,7 +3224,7 @@ app.get('/api/report/:paramCode', async (req, res) => {
     file.data.pipe(res);
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).send('Internal Server Error');
+    res.status(500).send('Internal Server Error: ${error.message}');
   }
 });
 
