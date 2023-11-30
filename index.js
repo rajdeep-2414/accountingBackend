@@ -3229,10 +3229,39 @@ app.get('/api/sellentries/:entryNo/:flag', (req, res) => {
 // });
 
 
-app.get('/api/report/:paramCode', async (req, res) => {
-  const jasperReportsHost = 'https://accountingbackend.onrender.com'; // Update this with the correct host
+// app.get('/api/report/:paramCode', async (req, res) => {
+//   const jasperReportsHost = 'https://accountingbackend.onrender.com'; // Update this with the correct host
 
-  const url = `${jasperReportsHost}/jasperserver/rest_v2/reports/reports/Customer.pdf`;
+//   const url = `${jasperReportsHost}/jasperserver/rest_v2/reports/reports/Customer.pdf`;
+//   const paramCode = req.params.paramCode;
+//   const params = {
+//     ParamCode: paramCode
+//   };
+
+//   try {
+//     const file = await axios.get(url, {
+//       params: params,
+//       responseType: 'stream',
+//       auth: {
+//         username: 'jasperadmin',
+//         password: 'jasperadmin'
+//       }
+//     });
+
+//     // Set the appropriate headers, including character encoding
+//     res.setHeader('Content-Type', 'application/pdf; charset=utf-8');
+//     res.setHeader('Content-Disposition', 'inline; filename=report.pdf');
+
+//     file.data.pipe(res);
+//   } catch (error) {
+//     console.error('Error:', error);
+//     res.status(500).send(`Internal Server Error: ${error.message}`);
+//   }
+// });
+
+
+app.get('/api/report/:paramCode', async (req, res) => {
+  const url = "http://192.168.1.9:8080/jasperserver/rest_v2/reports/reports/Customer.pdf";
   const paramCode = req.params.paramCode;
   const params = {
     ParamCode: paramCode
@@ -3241,10 +3270,10 @@ app.get('/api/report/:paramCode', async (req, res) => {
   try {
     const file = await axios.get(url, {
       params: params,
-      responseType: 'stream',
+      responseType: "stream",
       auth: {
-        username: 'jasperadmin',
-        password: 'jasperadmin'
+        username: "jasperadmin",
+        password: "jasperadmin"
       }
     });
 
@@ -3255,7 +3284,7 @@ app.get('/api/report/:paramCode', async (req, res) => {
     file.data.pipe(res);
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).send(`Internal Server Error: ${error.message}`);
+    res.status(500).send('Internal Server Error');
   }
 });
 
