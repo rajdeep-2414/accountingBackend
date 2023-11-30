@@ -46,16 +46,12 @@ require('events');
 const app = express();
 app.use(bodyParser.json());
 
-const allowedOrigins = ['https://gap1.netlify.app', 'http://localhost:3000']; // Add your Netlify URL here
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-}));
+const corsOptions = {
+  origin: 'https://gap1.netlify.app',
+  credentials: true, // if you are using cookies or authentication
+};
+
+app.use(cors(corsOptions));
 
 // Database configuration
 const config = {
