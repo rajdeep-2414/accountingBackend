@@ -45,7 +45,17 @@ require('events');
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors());
+
+const allowedOrigins = ['https://gap1.netlify.app', 'http://localhost:3000']; // Add your Netlify URL here
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+}));
 
 // Database configuration
 const config = {
@@ -3248,42 +3258,3 @@ app.get('/api/report/:paramCode', async (req, res) => {
 //     res.status(500).send('Internal Server Error');
 //   }
 // });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
