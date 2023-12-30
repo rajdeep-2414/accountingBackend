@@ -1,68 +1,58 @@
-// const express = require ('express');
-// const bodyParcer = require ('body-parser');
-// const cors = require ('cors');
-// const sql = require ('mssql/msnodesqlv8');
-// const axios = require('axios');
+/* const express = require ('express');
+const bodyParcer = require ('body-parser');
+const cors = require ('cors');
+const sql = require ('mssql/msnodesqlv8');
 
-// const app = express();
-// app.use(bodyParcer.json());
-// app.use(cors());
-// // app.use(express.static(path.join(__dirname , "./frontend/build")));
-// // app.get ("*", (req,res) => {
-// //     res.sendFile(path.join(__dirname , "./frontend/build/index.html"))
-// // });
+const app = express();
+app.use(bodyParcer.json());
+app.use(cors());
 
-// const config = {
-//     server:'RAJDEEP-PC\\SQLEXPRESS',
-//     database:'GapData1',
-//     driver:'msnodesqlv8',
-//     options:{
-//         trustedConnection: true,
-//     },
-// };
 
-// sql.connect(config , (err)=>{
-//     if(err){
-//         console.log('Error:',err);
-//     }else{
-//         console.log('connected')
-//     }
-// });
+const config = {
+  driver: 'msnodesqlv8',
+  connectionString: 'Driver={SQL Server};Server=AYJLAPTOP\\SQLEXPRESS;Database=GapData1;Trusted_Connection=yes;',
+     options: {
+    trustedConnection: true, 
+  },
+};
 
-// // Start the server
-// const PORT = process.env.PORT || 8090;
-// app.listen(PORT, () => {
-//   console.log(`Server is running on PORT ${PORT}`);
-// });
+sql.connect(config , (err)=>{
+    if(err){
+        console.log('Error:',err);
+    }else{
+        console.log('connected')
+    }
+});
 
+// Start the server
+const PORT = process.env.PORT || 8090;
+app.listen(PORT, () => {
+  console.log(`Server is running on PORT ${PORT}`);
+});
+ */
 
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const sql = require('mssql');
 const axios = require('axios');
-require('events');
+
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors());
 
-const corsOptions = {
-  origin: 'https://gap1.netlify.app',
-  credentials: true, // if you are using cookies or authentication
-};
-
-app.use(cors(corsOptions));
 
 // Database configuration
 const config = {
   user: 'Well1',
   password: 'well228608',
   server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
-  port: 1857, // Add the port number here
+  port: 1857, 
   database: 'GapData1',
   options: {
-    encrypt: true, // For Azure SQL Database
-    trustServerCertificate: true, // Change this if you're using a self-signed certificate
+    encrypt: true, 
+    trustServerCertificate: true, 
   },
 };
 
@@ -82,9 +72,164 @@ app.listen(PORT, () => {
 });
 
 
+//create admin 
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // Validate input (optional, depending on your requirements)
+
+  const query = `
+    SELECT UserName FROM Users
+    WHERE UserName = '${username}' AND Password = '${password}'
+  `;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.recordset.length > 0) {
+        const loggedInUsername = result.recordset[0].UserName;
+        res.json({ message: 'Login successful', username: loggedInUsername });
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    }
+  });
+});
+
+// app.post('/api/login', (req, res) => {
+//   const { username, password } = req.body;
+
+//   // Validate input (optional, depending on your requirements)
+
+//   const query = `
+//     SELECT * FROM Users
+//     WHERE UserName = '${username}' AND Password = '${password}'
+//   `;
+
+//   sql.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       if (result.recordset.length > 0) {
+//         res.json({ message: 'Login successful' });
+//       } else {
+//         res.status(401).json({ error: 'Invalid credentials' });
+//       }
+//     }
+//   });
+// });
+
+  app.post('/api/users', (req, res) => {
+    const {
+      username,
+      password,
+      isAdmin,
+      allowMasterAdd,
+      allowMasterEdit,
+      allowMasterDelete,
+      allowEntryAdd,
+      allowEntryEdit,
+      allowEntryDelete,
+      allowBackdatedEntry,
+      passwordHint,
+    } = req.body;
+
+    const query = `
+      INSERT INTO Users (
+        UserName,
+        Password,
+        Administrator,
+        AllowMasterAdd,
+        AllowMasterEdit,
+        AllowMasterDelete,
+        AllowEntryAdd,
+        AllowEntryEdit,
+        AllowEntryDelete,
+        AllowBackdatedEntry,
+        Passwordhint
+      )
+      VALUES (
+        '${username}',
+        '${password}',
+        ${isAdmin ? 1 : 0},
+        ${allowMasterAdd ? 1 : 0},
+        ${allowMasterEdit ? 1 : 0},
+        ${allowMasterDelete ? 1 : 0},
+        ${allowEntryAdd ? 1 : 0},
+        ${allowEntryEdit ? 1 : 0},
+        ${allowEntryDelete ? 1 : 0},
+        ${allowBackdatedEntry ? 1 : 0},
+        '${passwordHint}'
+      )
+    `;
+
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'User created successfully' });
+      }
+    });
+  });
+
+  app.get('/api/getusers', (req, res) => {
+    const query = `SELECT * FROM Users`;
+  
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+  
+  // Example endpoint: Update an existing item
+app.put('/api/updateUser/:username', (req, res) => {
+  const { username } = req.params;
+  const { 
+    password, 
+    isAdmin,
+    allowMasterAdd,
+    allowMasterEdit,
+    allowMasterDelete,
+    allowEntryAdd,
+    allowEntryEdit,
+    allowEntryDelete,
+    allowBackdatedEntry,
+    passwordHint } = req.body;
+
+  const query = `UPDATE Users SET  Password='${password}', Administrator=${isAdmin ? 1 : 0}, AllowMasterAdd=${allowMasterAdd ? 1 : 0}, AllowMasterEdit=${allowMasterEdit ? 1 : 0}, AllowMasterDelete=${allowMasterDelete ? 1 : 0}, AllowEntryAdd=${allowEntryAdd ? 1 : 0}, AllowEntryEdit=${allowEntryEdit ? 1 : 0}, AllowEntryDelete=${allowEntryDelete ? 1 : 0}, AllowBackdatedEntry=${allowBackdatedEntry ? 1 : 0},Passwordhint='${passwordHint}' WHERE UserName ='${username}'`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Item updated successfully' });
+    }
+  });
+});
+
+  app.delete('/api/deleteUser/:UserName', (req, res) => {
+    const { UserName } = req.params;
+    const query = `DELETE FROM Users WHERE UserName = '${UserName}'`;
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Item deleted successfully' });
+      }
+    });
+  });
 
 // For AcGroupMaster
-
 // GET all AcGroupMaster entries
 app.get('/api/acgroups', (req, res) => {
   const query = 'SELECT * FROM AcGroupMaster';
@@ -995,44 +1140,59 @@ app.get('/api/ledger-master', (req, res) => {
       AcGroupCode,
       AcHead,
       AcHeadEng,
-      SubLedgerYN,
-      AcPrintPosition,
-      SubLedgerGroupCode,
       DetailYN,
+      Address1,
+      Address2,
+      City,
+      MobileNo,
+      Email,
+      AadharCardNo,
+      PanNo,
+      GSTNo,
       Remark1,
       Remark2,
       Remark3,
       Remark4,
       Remark5,
-      UserID,
+      UserID
     } = req.body;
   
     const query = `
       INSERT INTO LedgerMaster (
-        AcCode,
-        AcGroupCode,
-        AcHead,
-        AcHeadEng,
-        SubLedgerYN,
-        AcPrintPosition,
-        SubLedgerGroupCode,
-        DetailYN,
-        Remark1,
-        Remark2,
-        Remark3,
-        Remark4,
-        Remark5,
-        UserID
+      AcCode,
+      AcGroupCode,
+      AcHead,
+      AcHeadEng,
+      DetailYN,
+      Address1,
+      Address2,
+      City,
+      MobileNo,
+      Email,
+      AadharCardNo,
+      PANo,
+      GSTNo,
+      Remark1,
+      Remark2,
+      Remark3,
+      Remark4,
+      Remark5,
+      UserID
       )
       VALUES (
         '${AcCode}',
         '${AcGroupCode}',
         N'${AcHead}',
         N'${AcHeadEng}',
-        '${SubLedgerYN}',
-        '${AcPrintPosition}',
-        '${SubLedgerGroupCode}',
         N'${DetailYN}',
+        N'${Address1}',
+        N'${Address2}',
+        N'${City}',
+        '${MobileNo}',
+        '${Email}',
+        '${AadharCardNo}',
+        '${PanNo}',
+        '${GSTNo}',
         N'${Remark1}',
         N'${Remark2}',
         N'${Remark3}',
@@ -1059,16 +1219,21 @@ app.get('/api/ledger-master', (req, res) => {
       AcGroupCode,
       AcHead,
       AcHeadEng,
-      SubLedgerYN,
-      AcPrintPosition,
-      SubLedgerGroupCode,
       DetailYN,
+      Address1,
+      Address2,
+      City,
+      MobileNo,
+      Email,
+      AadharCardNo,
+      PanNo,
+      GSTNo,
       Remark1,
       Remark2,
       Remark3,
       Remark4,
       Remark5,
-      UserID,
+      UserID
     } = req.body;
   
     const query = `
@@ -1077,10 +1242,15 @@ app.get('/api/ledger-master', (req, res) => {
         AcGroupCode='${AcGroupCode}',
         AcHead=N'${AcHead}',
         AcHeadEng=N'${AcHeadEng}',
-        SubLedgerYN='${SubLedgerYN}',
-        AcPrintPosition='${AcPrintPosition}',
-        SubLedgerGroupCode=N'${SubLedgerGroupCode}',
-        DetailYN='${DetailYN}',
+        DetailYN=N'${DetailYN}',
+        Address1=N'${Address1}',
+        Address2=N'${Address2}',
+        City=N'${City}',
+        MobileNo='${MobileNo}',
+        Email='${Email}',
+        AadharCardNo='${AadharCardNo}',
+        PANo=N'${PanNo}',
+        GSTNo=N'${GSTNo}',
         Remark1=N'${Remark1}',
         Remark2=N'${Remark2}',
         Remark3=N'${Remark3}',
@@ -1102,16 +1272,22 @@ app.get('/api/ledger-master', (req, res) => {
             AcGroupCode,
             AcHead,
             AcHeadEng,
-            SubLedgerYN,
-            AcPrintPosition,
-            SubLedgerGroupCode,
             DetailYN,
+            Address1,
+            Address2,
+            City,
+            MobileNo,
+            Email,
+            AadharCardNo,
+            PanNo,
+            GSTNo,
             Remark1,
             Remark2,
             Remark3,
             Remark4,
             Remark5,
-            UserID,
+            UserID
+      
           });
         } else {
           res.status(404).json({ error: 'Record not found' });
@@ -2750,8 +2926,8 @@ app.post('/api/Savetranentries', (req, res) => {
           AND TETS.Flag = TE.Flag
       );
 
-    INSERT INTO TranEntry (ID, EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, Narration1, Narration2, Qty, Rate, Narration3, ItemCode, MRP, Amount, Discount, TotalAmt, GSTCode, CGST, SGST, IGST, NetTotalAmt)
-    SELECT ID, EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, Narration1, Narration2, Qty, Rate, Narration3, ItemCode, MRP, Amount, Discount, TotalAmt, GSTCode, CGST, SGST, IGST, NetTotalAmt
+    INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt)
+    SELECT  EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt
     FROM TranEntryTempSub;
 
     DELETE TETS
@@ -2773,8 +2949,40 @@ app.post('/api/Savetranentries', (req, res) => {
   });
 });
 
+app.post('/api/SaveBillentries', (req, res) => {
+  // SQL query to insert data into TranEntry and delete from TranEntryTempSub
+  const query = `
+    DELETE TE
+      FROM Billsub AS TE
+      WHERE EXISTS (
+        SELECT 1 
+        FROM BillsubTemp AS TETS 
+        WHERE TETS.EntryNo = TE.EntryNo 
+          AND TETS.Flag = TE.Flag
+      );
 
+    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode)
+    SELECT  TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode
+    FROM BillsubTemp;
 
+    DELETE TETS
+    FROM BillsubTemp AS TETS
+    WHERE EXISTS (
+      SELECT 1 
+      FROM Billsub AS TE 
+      WHERE TE.EntryNo = TETS.EntryNo 
+        AND TE.Flag = TETS.Flag
+    );
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Data saved successfully' });
+    }
+  });
+});
 
 app.post('/api/tranentriesPost', (req, res) => {
   const {
@@ -2830,6 +3038,60 @@ app.post('/api/tranentriesPost', (req, res) => {
 });
 
 
+// app.post('/api/tranentriesPost', (req, res) => {
+//   const {
+//     entryNo,
+//     trDate,
+//     acCode,
+//     subLedgerGroupCode,
+//     subAcCode,
+//     crAmt,
+//     drAmt,
+//     chqNo,
+//     narration1,
+//     narration2,
+//     narration3,
+//     flag
+//   } = req.body;
+
+//   let query = `
+//     INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt)`;
+
+//   // Conditionally add chqNo to the SQL query if it's provided
+//   if (chqNo) {
+//     query += ', ChqNo';
+//   }
+
+//   // Conditionally add narration1 to the SQL query if it's provided
+//   if (narration1) {
+//     query += ', Narration1';
+//   }
+
+//   query += `)
+//     VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGroupCode}', '${subAcCode}', '${crAmt}', '${drAmt}'`;
+
+//   // Conditionally add the values for chqNo and narration1
+//   if (chqNo) {
+//     query += `, '${chqNo}'`;
+//   }
+
+//   if (narration1) {
+//     query += `, '${narration1}'`;
+//   }
+
+//   query += ');';
+
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Data saved successfully' });
+//     }
+//   });
+// });
+
+
 // PUT (update) a TranEntry by ID
 app.put('/api/tranentries/:entryNo', (req, res) => {
   const { entryNo } = req.params;
@@ -2880,130 +3142,118 @@ app.put('/api/tranentries/:entryNo', (req, res) => {
 });
 
 
-app.put('/api/Newtranentries/:ID', (req, res) => {
-  const { ID } = req.params;
-  const {
-    entryNo,
-    trDate,
-    flag,
-    acCode,
-    subLedgerGroupCode,
-    subAcCode,
-    crAmt,
-    drAmt,
-    chqNo,
-    narration1,
-    narration2,
-    narration3,
-  } = req.body;
+// app.put('/api/Newtranentries/:ID', (req, res) => {
+//   const { ID } = req.params;
+//   const {
+//     entryNo,
+//     trDate,
+//     flag,
+//     acCode,
+//     subLedgerGroupCode,
+//     subAcCode,
+//     crAmt,
+//     drAmt,
+//     chqNo,
+//     narration1,
+//     narration2,
+//     narration3,
+//   } = req.body;
 
-  // Check if the ID exists in TranEntry
-  const queryCheckTranEntry = `SELECT COUNT(*) AS count FROM TranEntry WHERE ID=${ID}`;
-  sql.query(queryCheckTranEntry, (err, resultCheckTranEntry) => {
-    if (err) {
-      console.log('Error checking TranEntry:', err);
-      return res.status(500).json({ error: 'Internal server error for TranEntry check' });
-    }
+//   // Check if the ID exists in TranEntry
+//   const queryCheckTranEntry = `SELECT COUNT(*) AS count FROM TranEntry WHERE ID=${ID}`;
+//   sql.query(queryCheckTranEntry, (err, resultCheckTranEntry) => {
+//     if (err) {
+//       console.log('Error checking TranEntry:', err);
+//       return res.status(500).json({ error: 'Internal server error for TranEntry check' });
+//     }
 
-    const idExistsInTranEntry = resultCheckTranEntry.recordset[0].count > 0;
+//     const idExistsInTranEntry = resultCheckTranEntry.recordset[0].count > 0;
 
-    let updateQuery = '';
-    if (idExistsInTranEntry) {
-      // ID exists in TranEntry, update TranEntry
-      updateQuery = `
-        UPDATE TranEntry
-        SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
-    } else {
-      // ID exists in TranEntryTempSub, update TranEntryTempSub
-      updateQuery = `
-        UPDATE TranEntryTempSub
-        SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
-    }
-    // Execute the update query
-    sql.query(updateQuery, (err, result) => {
-      if (err) {
-        console.log('Error updating:', err);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
+//     let updateQuery = '';
+//     if (idExistsInTranEntry) {
+//       // ID exists in TranEntry, update TranEntry
+//       updateQuery = `
+//         UPDATE TranEntry
+//         SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
+//     } else {
+//       // ID exists in TranEntryTempSub, update TranEntryTempSub
+//       updateQuery = `
+//         UPDATE TranEntryTempSub
+//         SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
+//     }
+//     // Execute the update query
+//     sql.query(updateQuery, (err, result) => {
+//       if (err) {
+//         console.log('Error updating:', err);
+//         return res.status(500).json({ error: 'Internal server error' });
+//       }
 
-      const rowsAffected = result.rowsAffected && result.rowsAffected[0];
+//       const rowsAffected = result.rowsAffected && result.rowsAffected[0];
 
-      if (rowsAffected > 0) {
-        return res.json({
-          message: 'Record updated successfully',
-          entryNo,
-          trDate,
-          flag,
-          acCode,
-          subLedgerGroupCode,
-          subAcCode,
-          crAmt,
-          drAmt,
-          chqNo,
-          narration1,
-          narration2,
-          narration3,
-        });
-      } else {
-        return res.status(404).json({ error: 'Record not found for the specified ID', ID });
-      }
-    });
-  });
-});
+//       if (rowsAffected > 0) {
+//         return res.json({
+//           message: 'Record updated successfully',
+//           entryNo,
+//           trDate,
+//           flag,
+//           acCode,
+//           subLedgerGroupCode,
+//           subAcCode,
+//           crAmt,
+//           drAmt,
+//           chqNo,
+//           narration1,
+//           narration2,
+//           narration3,
+//         });
+//       } else {
+//         return res.status(404).json({ error: 'Record not found for the specified ID', ID });
+//       }
+//     });
+//   });
+// });
 
 // DELETE a TranEntry by ID
-app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
+
+// app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
+//   const { entryNo, flag } = req.params;
+//   const query = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'TranEntry deleted successfully' });
+//     }
+//   });
+// });
+
+
+app.delete('/api/Newtranentries/:entryNo/:flag', (req, res) => {
   const { entryNo, flag } = req.params;
-  const query = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
+  const query = `DELETE FROM BillSub WHERE EntryNo=${entryNo} AND Flag=${flag}`;
+  console.log("print",entryNo, flag);
   sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
       res.status(500).json({ error: 'Internal server error' });
     } else {
-      res.json({ message: 'TranEntry deleted successfully' });
+      res.json({ message: 'BillSubTemp deleted successfully' });
     }
   });
 });
 
-
-app.delete('/api/Newtranentries/:Id', (req, res) => {
-  const { Id } = req.params;
-
-  // Construct queries for deleting from both tables
-  const queryTranEntryTempSub = `DELETE FROM TranEntryTempSub WHERE ID=${Id}`;
-  const queryTranEntry = `DELETE FROM TranEntry WHERE ID=${Id}`;
-
-  // Execute the first query to delete from TranEntryTempSub
-  sql.query(queryTranEntryTempSub, (err) => {
-    if (err) {
-      console.log('Error deleting from TranEntryTempSub:', err.message);
-      res.status(500).json({ error: 'Error deleting from TranEntryTempSub' });
-    } else {
-      console.log('Deleted from TranEntryTempSub:', queryTranEntryTempSub);
-
-      // Execute the second query to delete from TranEntry
-      sql.query(queryTranEntry, (err) => {
-        if (err) {
-          console.log('Error deleting from TranEntry:', err.message);
-          res.status(500).json({ error: 'Error deleting from TranEntry' });
-        } else {
-          console.log('Deleted from TranEntry:', queryTranEntry);
-          res.json({ message: 'Record deleted successfully from both tables' });
-        }
-      });
-    }
-  });
-});
 
 //For sell entry
 app.get('/api/distinct-sellentries/:flag', (req, res) => {
   const flag = req.params.flag; // Get the "flag" from the route parameters
 
+
   // Make sure to validate "flag" and handle any potential security concerns
 
   const query = `
     SELECT distinct EntryNo, TrDate, Flag
-    FROM TranEntry
+    FROM Billsub
     WHERE Flag = @flag`; // Use parameterized query to avoid SQL injection
 
   const request = new sql.Request();
@@ -3019,6 +3269,45 @@ app.get('/api/distinct-sellentries/:flag', (req, res) => {
   });
 });
 
+// app.get('/api/billsubtemp/:flag', (req, res) => {
+//   const flag = req.params.flag;  // Get the "flag" from the URL parameters
+//   console.log('flag temp:', flag);
+
+//   const query = `SELECT * FROM BillsubTemp WHERE Flag = @flag`;
+//   const request = new sql.Request();
+//   request.input('flag', sql.NVarChar, flag); // Define the SQL parameter for "flag"
+//   request.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json(result.recordset);
+//     }
+//   });
+// });
+
+app.get('/api/billsubtemp/:flag', (req, res) => {
+  const flag = req.params.flag; // Get the "flag" from the URL parameters
+
+
+  // Modify the query to select a specific entry number and consider the "flag"
+  const query = `
+    SELECT *
+    FROM BillsubTemp
+    WHERE FLAG = @flag`; // Use parameterized query to avoid SQL injection
+
+  const request = new sql.Request();
+  request.input('flag', sql.NVarChar, flag); // Define the SQL parameter for "flag"
+
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
 
 
 app.get('/api/sellentries/:entryNo/:flag', (req, res) => {
@@ -3028,8 +3317,8 @@ app.get('/api/sellentries/:entryNo/:flag', (req, res) => {
   // Modify the query to select a specific entry number and consider the "flag"
   const query = `
     SELECT *
-    FROM TranEntry
-    WHERE EntryNo = @entryNo AND Flag = @flag`; // Use parameterized query to avoid SQL injection
+    FROM Billsub
+    WHERE ENTRYNO = @entryNo AND FLAG = @flag`; // Use parameterized query to avoid SQL injection
 
   const request = new sql.Request();
   request.input('entryNo', sql.NVarChar, entryNo); // Define the SQL parameter for "entryNo"
@@ -3045,32 +3334,38 @@ app.get('/api/sellentries/:entryNo/:flag', (req, res) => {
   });
 });
 
-
-
 app.post('/api/sellentriesPost', (req, res) => {
   const {
+      flag,
       entryNo,
       trDate,
-      acCode,
-      itemCode,
-      subAcCode,
+      AcCode,
+      ItCode,
+      BillNo,
+      BillDate,
+      Desc1,
+      Desc2,
       MRP,
       Qty,
       Rate,
-      Amt,
-      Discount,
-      TotalAmt,
-      Gst,
-      CGst,
-      SGst,
-      IGst,
-      NetTotAmt,
-      flag
+      Amount,
+      DiscAmt,
+      TaxableAmt,
+      GstRateCode,
+      GstRate,
+      CGstAmt,
+      SGstAmt,
+      IGstAmt,
+      RoundOff,
+      NetAmt,
+      DeptCode,
+      YearCode
   } = req.body;
 
 
   let query = `
-    INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, ItemCode, SubAcCode, MRP, Qty, Rate, Amount, Discount, TotalAmt, GSTCode, CGST, SGST, IGST, NetTotalAmt) VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${itemCode}', '${subAcCode}', '${MRP}', '${Qty}', '${Rate}', '${Amt}', '${Discount}', '${TotalAmt}', '${Gst}', '${CGst}', '${SGst}', '${IGst}', '${NetTotAmt}');`;
+    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode,YearCode) 
+    VALUES ('${flag}','${entryNo}', '${trDate}',  '${AcCode}', '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}')`;
 
   sql.query(query, (err) => {
     if (err) {
@@ -3087,11 +3382,11 @@ app.post('/api/insertDataAndFlag', (req, res) => {
   const flag = req.body.flag;
 
   const query = `
-    DELETE FROM TranEntryTempSub;
+    DELETE FROM BillsubTemp;
 
-    INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, Narration1, Narration2, Qty, Rate, Narration3, ItemCode, MRP, Amount, Discount, TotalAmt, GSTCode, CGST, SGST, IGST, NetTotalAmt)
-    SELECT EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, Narration1, Narration2, Qty, Rate, Narration3, ItemCode, MRP, Amount, Discount, TotalAmt, GSTCode, CGST, SGST, IGST, NetTotalAmt
-    FROM TranEntry
+    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode ,YearCode)
+    SELECT flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode , YearCode
+    FROM Billsub
     WHERE EntryNo = @entryNo AND Flag = @flag;
   `;
 
@@ -3109,34 +3404,145 @@ app.post('/api/insertDataAndFlag', (req, res) => {
   });
 });
 
-app.put('/api/NewSaleEntries/:ID', (req, res) => {
-  const { ID } = req.params;
+// app.put('/api/NewSaleEntries/:entryNo/:flag', (req, res) => {
+//   const { entryNo , YearCode } = req.params;
+//   const {
+//       flag,
+//       trDate,
+//       AcCode,
+//       ItCode,
+//       BillNo,
+//       BillDate,
+//       Desc1,
+//       Desc2,
+//       MRP,
+//       Qty,
+//       Rate,
+//       Amount,
+//       DiscAmt,
+//       TaxableAmt,
+//       GstRateCode,
+//       GstRate,
+//       CGstAmt,
+//       SGstAmt,
+//       IGstAmt,
+//       RoundOff,
+//       NetAmt,
+//       DeptCode
+//   } = req.body;
+
+//   // Always update TranEntryTempSub
+//   const updateQuery = `
+//     UPDATE BillSubTemp
+//     SET TrDate='${trDate}', Flag='${flag}', AcCode='${AcCode}', ItCode='${ItCode}',BillNo='${BillNo}',BillDate='${BillDate}',Desc1='${Desc1}',Desc2='${Desc2}', MRP='${MRP}', Qty='${Qty}', Rate='${Rate}', Amount='${Amount}', DiscAmt='${DiscAmt}', TaxableAmt='${TaxableAmt}', GstRateCode='${GstRateCode}',GstRate='${GstRate}', CGstAmt='${CGstAmt}', SGstAmt='${SGstAmt}', IGstAmt='${IGstAmt}',RoundOff='${RoundOff}', NetAmt='${NetAmt}' WHERE ENTRYNO=${entryNo} AND YearCode=${YearCode} ;`;
+
+//   // Execute the update query
+//   sql.query(updateQuery, (err, result) => {
+//     if (err) {
+//       console.log('Error updating:', err);
+//       return res.status(500).json({ error: 'Internal server error' });
+//     }
+
+//     const rowsAffected = result.rowsAffected && result.rowsAffected[0];
+
+//     if (rowsAffected > 0) {
+//       return res.json({
+//         message: 'Record updated successfully',
+//         entryNo,
+//         trDate,
+//         AcCode,
+//         ItCode,
+//         BillNo,
+//         BillDate,
+//         Desc1,
+//         Desc2,
+//         MRP,
+//         Qty,
+//         Rate,
+//         Amount,
+//         DiscAmt,
+//         TaxableAmt,
+//         GstRateCode,
+//         GstRate,
+//         CGstAmt,
+//         SGstAmt,
+//         IGstAmt,
+//         RoundOff,
+//         NetAmt,
+//         DeptCode
+//       });
+//     } else {
+//       return res.status(404).json({ error: 'Record not found for the specified ID', ID });
+//     }
+//   });
+// });
+
+app.put('/api/NewSaleEntries/:entryNo/:YearCode/:flag', (req, res) => {
+  const { entryNo, YearCode, flag } = req.params;
   const {
-    entryNo,
     trDate,
-    flag,
-    acCode,
-    itemCode,
+    AcCode,
+    ItCode,
+    BillNo,
+    BillDate,
+    Desc1,
+    Desc2,
     MRP,
     Qty,
     Rate,
-    Amt,
-    Discount,
-    TotalAmt,
-    Gst,
-    CGst,
-    SGst,
-    IGst,
-    NetTotAmt,
+    Amount,
+    DiscAmt,
+    TaxableAmt,
+    GstRateCode,
+    GstRate,
+    CGstAmt,
+    SGstAmt,
+    IGstAmt,
+    RoundOff,
+    NetAmt,
+    DeptCode
   } = req.body;
 
   // Always update TranEntryTempSub
   const updateQuery = `
-    UPDATE TranEntryTempSub
-    SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', ItemCode='${itemCode}', MRP='${MRP}', Qty='${Qty}', Rate='${Rate}', Amount='${Amt}', Discount='${Discount}', TotalAmt='${TotalAmt}', GSTCode='${Gst}', CGST='${CGst}', SGST='${SGst}', IGST='${IGst}', NetTotalAmt='${NetTotAmt}' WHERE ID=${ID};`;
+    UPDATE BillSubTemp
+    SET TRDATE=@trDate, AcCode=@AcCode, ItCode=@ItCode, BillNo=@BillNo, BillDate=@BillDate, Desc1=@Desc1, Desc2=@Desc2, MRP=@MRP, Qty=@Qty, Rate=@Rate, Amount=@Amount, DiscAmt=@DiscAmt, TaxableAmt=@TaxableAmt, GstRateCode=@GstRateCode, GstRate=@GstRate, CGstAmt=@CGstAmt, SGstAmt=@SGstAmt, IGstAmt=@IGstAmt, RoundOff=@RoundOff, NetAmt=@NetAmt
+    WHERE ENTRYNO=@entryNo AND YearCode=@YearCode AND Flag=@flag;`;
 
-  // Execute the update query
-  sql.query(updateQuery, (err, result) => {
+  // Define parameters
+  const params = {
+    trDate,
+    AcCode,
+    ItCode,
+    BillNo,
+    BillDate,
+    Desc1,
+    Desc2,
+    MRP,
+    Qty,
+    Rate,
+    Amount,
+    DiscAmt,
+    TaxableAmt,
+    GstRateCode,
+    GstRate,
+    CGstAmt,
+    SGstAmt,
+    IGstAmt,
+    RoundOff,
+    NetAmt,
+    entryNo,
+    YearCode,
+    flag,
+  };
+
+  // Execute the update query with parameters
+  const request = new sql.Request();
+  Object.keys(params).forEach((key) => {
+    request.input(key, sql.NVarChar, params[key]);
+  });
+
+  request.query(updateQuery, (err, result) => {
     if (err) {
       console.log('Error updating:', err);
       return res.status(500).json({ error: 'Internal server error' });
@@ -3149,115 +3555,65 @@ app.put('/api/NewSaleEntries/:ID', (req, res) => {
         message: 'Record updated successfully',
         entryNo,
         trDate,
-        flag,
-        acCode,
-        itemCode,
+        AcCode,
+        ItCode,
+        BillNo,
+        BillDate,
+        Desc1,
+        Desc2,
         MRP,
         Qty,
         Rate,
-        Amt,
-        Discount,
-        TotalAmt,
-        Gst,
-        CGst,
-        SGst,
-        IGst,
-        NetTotAmt,
+        Amount,
+        DiscAmt,
+        TaxableAmt,
+        GstRateCode,
+        GstRate,
+        CGstAmt,
+        SGstAmt,
+        IGstAmt,
+        RoundOff,
+        NetAmt,
+        DeptCode
       });
     } else {
-      return res.status(404).json({ error: 'Record not found for the specified ID', ID });
+      return res.status(404).json({
+        error: 'Record not found for the specified ID',
+        entryNo,
+        flag,
+        YearCode
+      });
     }
   });
 });
 
-//Report 
-
-app.get('/api/sellentries/:entryNo/:flag', (req, res) => {
-  const entryNo = req.params.entryNo; // Get the entry number from the URL
-  const flag = req.params.flag; // Get the "flag" from the URL parameters
-
-  // Modify the query to select a specific entry number and consider the "flag"
-  const query = `
-    SELECT *
-    FROM TranEntry
-    WHERE EntryNo = @entryNo AND Flag = @flag`; // Use parameterized query to avoid SQL injection
-
-  const request = new sql.Request();
-  request.input('entryNo', sql.NVarChar, entryNo); // Define the SQL parameter for "entryNo"
-  request.input('flag', sql.NVarChar, flag); // Define the SQL parameter for "flag"
-
-  request.query(query, (err, result) => {
+app.delete('/api/billsubtempentries/:entryNo/:YearCode', (req, res) => {
+  const { entryNo, YearCode } = req.params;
+  const query = `DELETE FROM BillSubTemp WHERE EntryNo=${entryNo} AND YearCode=${YearCode}`;
+  sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
       res.status(500).json({ error: 'Internal server error' });
     } else {
-      res.json(result.recordset);
+      res.json({ message: 'BillSubTemp deleted successfully' });
     }
   });
 });
 
-// app.get('/api/report/:paramCode', async (req, res) => {
-//   const url = "http://localhost:8080/jasperserver/rest_v2/reports/reports/Customer.pdf";
-//   const paramCode = req.params.paramCode;
-//   const params = {
-//     ParamCode: paramCode
-//   };
-
-//   try {
-//     const file = await axios.get(url, {
-//       params: params,
-//       responseType: "stream",
-//       auth: {
-//         username: "jasperadmin",
-//         password: "jasperadmin"
-//       }
-//     });
-
-//     // Set the appropriate headers, including character encoding
-//     res.setHeader('Content-Type', 'application/pdf; charset=utf-8');
-//     res.setHeader('Content-Disposition', 'inline; filename=report.pdf');
-
-//     file.data.pipe(res);
-//   } catch (error) {
-//     console.error('Error:', error);
-//     res.status(500).send('Internal Server Error: ${error.message}');
-//   }
-// });
-
-
-// app.get('/api/report/:paramCode', async (req, res) => {
-//   const jasperReportsHost = 'https://accountingbackend.onrender.com'; // Update this with the correct host
-
-//   const url = `${jasperReportsHost}/jasperserver/rest_v2/reports/reports/Customer.pdf`;
-//   const paramCode = req.params.paramCode;
-//   const params = {
-//     ParamCode: paramCode
-//   };
-
-//   try {
-//     const file = await axios.get(url, {
-//       params: params,
-//       responseType: 'stream',
-//       auth: {
-//         username: 'jasperadmin',
-//         password: 'jasperadmin'
-//       }
-//     });
-
-//     // Set the appropriate headers, including character encoding
-//     res.setHeader('Content-Type', 'application/pdf; charset=utf-8');
-//     res.setHeader('Content-Disposition', 'inline; filename=report.pdf');
-
-//     file.data.pipe(res);
-//   } catch (error) {
-//     console.error('Error:', error);
-//     res.status(500).send(`Internal Server Error: ${error.message}`);
-//   }
-// });
-
+app.delete('/api/clearTemp', (req, res) => {
+  const query = `DELETE FROM BillSubTemp`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'BillSubTemp deleted successfully' });
+    }
+  });
+});
 
 app.get('/api/report/:paramCode', async (req, res) => {
-  const url = "http://192.168.1.9:8080/jasperserver/rest_v2/reports/reports/Customer.pdf";
+  const url = "http://localhost:8080/jasperserver/rest_v2/reports/reports/Customer.pdf";
   const paramCode = req.params.paramCode;
   const params = {
     ParamCode: paramCode
@@ -3283,34 +3639,3 @@ app.get('/api/report/:paramCode', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-
-
-
-// app.get('/api/report/:paramCode', async (req, res) => {
-//   // const url = "http://localhost:8080/jasperserver/rest_v2/reports/reports/Customer.jrxml";
-//   const url = "http://localhost:8080/jasperserver/rest_v2/reports/reports/Customer.pdf";
-
-
-//   const paramCode = req.params.paramCode;
-
-//   const params = {
-//     ParamCode: paramCode
-//   };
-
-//   try {
-//     const file = await axios.get(url, {
-//       params: params,
-//       responseType: "stream",
-//       auth: {
-//         username: "jasperadmin",
-//         password: "jasperadmin"
-//       }
-//     });
-
-//     res.writeHead(200, { "Content-Type": "application/pdf" });
-//     file.data.pipe(res);
-//   } catch (error) {
-//     console.error('Error:', error);
-//     res.status(500).send('Internal Server Error');
-//   }
-// });
