@@ -36,6 +36,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const sql = require('mssql');
 const axios = require('axios');
+const bcrypt = require('bcrypt');
 
 
 const app = express();
@@ -74,38 +75,13 @@ app.listen(PORT, () => {
 
 //create admin 
 
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-
-  // Validate input (optional, depending on your requirements)
-
-  const query = `
-    SELECT UserName FROM Users
-    WHERE UserName = '${username}' AND Password = '${password}'
-  `;
-
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      if (result.recordset.length > 0) {
-        const loggedInUsername = result.recordset[0].UserName;
-        res.json({ message: 'Login successful', username: loggedInUsername });
-      } else {
-        res.status(401).json({ error: 'Invalid credentials' });
-      }
-    }
-  });
-});
-
 // app.post('/api/login', (req, res) => {
 //   const { username, password } = req.body;
 
 //   // Validate input (optional, depending on your requirements)
 
 //   const query = `
-//     SELECT * FROM Users
+//     SELECT UserName FROM Users
 //     WHERE UserName = '${username}' AND Password = '${password}'
 //   `;
 
@@ -115,7 +91,8 @@ app.post('/api/login', (req, res) => {
 //       res.status(500).json({ error: 'Internal server error' });
 //     } else {
 //       if (result.recordset.length > 0) {
-//         res.json({ message: 'Login successful' });
+//         const loggedInUsername = result.recordset[0].UserName;
+//         res.json({ message: 'Login successful', username: loggedInUsername });
 //       } else {
 //         res.status(401).json({ error: 'Invalid credentials' });
 //       }
@@ -123,7 +100,91 @@ app.post('/api/login', (req, res) => {
 //   });
 // });
 
-  app.post('/api/users', (req, res) => {
+// // app.post('/api/login', (req, res) => {
+// //   const { username, password } = req.body;
+
+// //   // Validate input (optional, depending on your requirements)
+
+// //   const query = `
+// //     SELECT * FROM Users
+// //     WHERE UserName = '${username}' AND Password = '${password}'
+// //   `;
+
+// //   sql.query(query, (err, result) => {
+// //     if (err) {
+// //       console.log('Error:', err);
+// //       res.status(500).json({ error: 'Internal server error' });
+// //     } else {
+// //       if (result.recordset.length > 0) {
+// //         res.json({ message: 'Login successful' });
+// //       } else {
+// //         res.status(401).json({ error: 'Invalid credentials' });
+// //       }
+// //     }
+// //   });
+// // });
+
+//for login
+
+app.put('/api/change-password', async (req, res) => {
+  const { username, oldPassword, newPassword } = req.body;
+
+  try {
+    // Validate input (optional, depending on your requirements)
+    const userQuery = `
+      SELECT * FROM Users
+      WHERE UserName = '${username}'
+    `;
+
+    sql.query(userQuery, async (err, result) => {
+      if (err) {
+        console.log('Error Executing SQL query:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        if (result.recordset.length > 0) {
+          const storedHashedPassword = result.recordset[0].Password;
+
+          // Compare entered old password with stored hashed password
+          const passwordMatch = await bcrypt.compare(oldPassword, storedHashedPassword);
+
+          if (passwordMatch) {
+            // Hash the new password
+            const newHashedPassword = await bcrypt.hash(newPassword, 10);
+
+            // Update the password in the database
+            const updateQuery = `
+              UPDATE Users
+              SET Password = '${newHashedPassword}'
+              WHERE UserName = '${username}'
+            `;
+
+            sql.query(updateQuery, (updateErr) => {
+              if (updateErr) {
+                console.log('Error updating password:', updateErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Password changed successfully' });
+                console.log("Password Updated !...");
+                
+              }
+            });
+          } else {
+            res.status(401).json({ error: 'Incorrect old password' });
+          }
+        } else {
+          res.status(404).json({ error: 'User not found' });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+  app.post('/api/users', async (req, res) => {
     const {
       username,
       password,
@@ -134,48 +195,145 @@ app.post('/api/login', (req, res) => {
       allowEntryAdd,
       allowEntryEdit,
       allowEntryDelete,
-      allowBackdatedEntry,
+      allowBackdatedEntry, 
       passwordHint,
     } = req.body;
 
-    const query = `
-      INSERT INTO Users (
-        UserName,
-        Password,
-        Administrator,
-        AllowMasterAdd,
-        AllowMasterEdit,
-        AllowMasterDelete,
-        AllowEntryAdd,
-        AllowEntryEdit,
-        AllowEntryDelete,
-        AllowBackdatedEntry,
-        Passwordhint
-      )
-      VALUES (
-        '${username}',
-        '${password}',
-        ${isAdmin ? 1 : 0},
-        ${allowMasterAdd ? 1 : 0},
-        ${allowMasterEdit ? 1 : 0},
-        ${allowMasterDelete ? 1 : 0},
-        ${allowEntryAdd ? 1 : 0},
-        ${allowEntryEdit ? 1 : 0},
-        ${allowEntryDelete ? 1 : 0},
-        ${allowBackdatedEntry ? 1 : 0},
-        '${passwordHint}'
-      )
-    `;
-
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'User created successfully' });
-      }
-    });
+    try {
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      //console.log("Hashed Password",hashedPassword);
+      const query = `
+        INSERT INTO Users (
+          UserName,
+          Password,
+          Passwordhint,
+          Administrator,
+          AllowMasterAdd,
+          AllowMasterEdit,
+          AllowMasterDelete,
+          AllowEntryAdd,
+          AllowEntryEdit,
+          AllowEntryDelete,
+          AllowBackdatedEntry
+        )
+        VALUES (
+          '${username}',
+          '${hashedPassword}',       --Store the hashed password
+          '${passwordHint}',
+          '${isAdmin ? 1 : 0}',
+          '${allowMasterAdd ? 1 : 0}',
+          '${allowMasterEdit ? 1 : 0}',
+          '${allowMasterDelete ? 1 : 0}',
+          '${allowEntryAdd ? 1 : 0}',
+          '${allowEntryEdit ? 1 : 0}',
+          '${allowEntryDelete ? 1 : 0}',
+          '${allowBackdatedEntry ? 1 : 0}'
+        )
+      `;
+  
+      sql.query(query, (err) => {
+        if (err) {
+          console.log('Error:', err);
+          res.status(500).json({ error: 'Internal server error' });
+        } else {
+          res.json({ message: 'User created successfully' });
+        }
+      });
+    } catch (error) {
+      console.error('Error hashing password:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // Validate input (optional, depending on your requirements)
+  const query = `
+    SELECT * FROM Users
+    WHERE UserName = '${username}'
+  `;
+
+  sql.query(query, async (err, result) => {
+    if (err) {
+      console.log('Error Executing SQL query :', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.recordset.length > 0) {
+        const storedHashedPassword = result.recordset[0].Password;
+
+        // Compare entered password with stored hashed password
+        const passwordMatch = await bcrypt.compare(password, storedHashedPassword);
+
+        const loggedInUsername = result.recordset[0].UserName;
+        if (passwordMatch) {
+          res.json({ message: 'Login successful', username: loggedInUsername });
+        } else {
+          res.status(401).json({ error: 'Invalid credentials' });
+        }
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    }
+  });
+});
+
+
+//users
+  // app.post('/api/users', (req, res) => {
+  //   const {
+  //     username,
+  //     password,
+  //     isAdmin,
+  //     allowMasterAdd,
+  //     allowMasterEdit,
+  //     allowMasterDelete,
+  //     allowEntryAdd,
+  //     allowEntryEdit,
+  //     allowEntryDelete,
+  //     allowBackdatedEntry,
+  //     passwordHint,
+  //   } = req.body;
+
+  //   const query = `
+  //     INSERT INTO Users (
+  //       UserName,
+  //       Password,
+  //       Administrator,
+  //       AllowMasterAdd,
+  //       AllowMasterEdit,
+  //       AllowMasterDelete,
+  //       AllowEntryAdd,
+  //       AllowEntryEdit,
+  //       AllowEntryDelete,
+  //       AllowBackdatedEntry,
+  //       Passwordhint
+  //     )
+  //     VALUES (
+  //       '${username}',
+  //       '${password}',
+  //       ${isAdmin ? 1 : 0},
+  //       ${allowMasterAdd ? 1 : 0},
+  //       ${allowMasterEdit ? 1 : 0},
+  //       ${allowMasterDelete ? 1 : 0},
+  //       ${allowEntryAdd ? 1 : 0},
+  //       ${allowEntryEdit ? 1 : 0},
+  //       ${allowEntryDelete ? 1 : 0},
+  //       ${allowBackdatedEntry ? 1 : 0},
+  //       '${passwordHint}'
+  //     )
+  //   `;
+
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'User created successfully' });
+  //     }
+  //   });
+  // });
 
   app.get('/api/getusers', (req, res) => {
     const query = `SELECT * FROM Users`;
@@ -191,7 +349,7 @@ app.post('/api/login', (req, res) => {
   });
   
   // Example endpoint: Update an existing item
-app.put('/api/updateUser/:username', (req, res) => {
+app.put('/api/updateUser/:username', async (req, res) => {
   const { username } = req.params;
   const { 
     password, 
@@ -205,15 +363,21 @@ app.put('/api/updateUser/:username', (req, res) => {
     allowBackdatedEntry,
     passwordHint } = req.body;
 
-  const query = `UPDATE Users SET  Password='${password}', Administrator=${isAdmin ? 1 : 0}, AllowMasterAdd=${allowMasterAdd ? 1 : 0}, AllowMasterEdit=${allowMasterEdit ? 1 : 0}, AllowMasterDelete=${allowMasterDelete ? 1 : 0}, AllowEntryAdd=${allowEntryAdd ? 1 : 0}, AllowEntryEdit=${allowEntryEdit ? 1 : 0}, AllowEntryDelete=${allowEntryDelete ? 1 : 0}, AllowBackdatedEntry=${allowBackdatedEntry ? 1 : 0},Passwordhint='${passwordHint}' WHERE UserName ='${username}'`;
-  sql.query(query, (err) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json({ message: 'Item updated successfully' });
+    try{
+      const hashPassword = await bcrypt.hash(password ,10);
+      const query = `UPDATE Users SET  Password='${hashPassword}', Administrator=${isAdmin ? 1 : 0}, AllowMasterAdd=${allowMasterAdd ? 1 : 0}, AllowMasterEdit=${allowMasterEdit ? 1 : 0}, AllowMasterDelete=${allowMasterDelete ? 1 : 0}, AllowEntryAdd=${allowEntryAdd ? 1 : 0}, AllowEntryEdit=${allowEntryEdit ? 1 : 0}, AllowEntryDelete=${allowEntryDelete ? 1 : 0}, AllowBackdatedEntry=${allowBackdatedEntry ? 1 : 0},Passwordhint='${passwordHint}' WHERE UserName ='${username}'`;
+      sql.query(query, (err) => {
+        if (err) {
+          console.log('Error:', err);
+          res.status(500).json({ error: 'Internal server error' });
+        } else {
+          res.json({ message: 'Item updated successfully' });
+        }
+      });
+    }catch(error){
+        console.log("error for updating hashpassword", error);
+        res.status(500).json({error:'internal server error'});
     }
-  });
 });
 
   app.delete('/api/deleteUser/:UserName', (req, res) => {
