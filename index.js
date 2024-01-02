@@ -3142,97 +3142,112 @@ app.put('/api/tranentries/:entryNo', (req, res) => {
 });
 
 
-// app.put('/api/Newtranentries/:ID', (req, res) => {
-//   const { ID } = req.params;
-//   const {
-//     entryNo,
-//     trDate,
-//     flag,
-//     acCode,
-//     subLedgerGroupCode,
-//     subAcCode,
-//     crAmt,
-//     drAmt,
-//     chqNo,
-//     narration1,
-//     narration2,
-//     narration3,
-//   } = req.body;
+app.put('/api/Newtranentries/:ID', (req, res) => {
+  const { ID } = req.params;
+  const {
+    entryNo,
+    trDate,
+    flag,
+    acCode,
+    subLedgerGroupCode,
+    subAcCode,
+    crAmt,
+    drAmt,
+    chqNo,
+    narration1,
+    narration2,
+    narration3,
+  } = req.body;
 
-//   // Check if the ID exists in TranEntry
-//   const queryCheckTranEntry = `SELECT COUNT(*) AS count FROM TranEntry WHERE ID=${ID}`;
-//   sql.query(queryCheckTranEntry, (err, resultCheckTranEntry) => {
-//     if (err) {
-//       console.log('Error checking TranEntry:', err);
-//       return res.status(500).json({ error: 'Internal server error for TranEntry check' });
-//     }
+  // Check if the ID exists in TranEntry
+  const queryCheckTranEntry = `SELECT COUNT(*) AS count FROM TranEntry WHERE ID=${ID}`;
+  sql.query(queryCheckTranEntry, (err, resultCheckTranEntry) => {
+    if (err) {
+      console.log('Error checking TranEntry:', err);
+      return res.status(500).json({ error: 'Internal server error for TranEntry check' });
+    }
 
-//     const idExistsInTranEntry = resultCheckTranEntry.recordset[0].count > 0;
+    const idExistsInTranEntry = resultCheckTranEntry.recordset[0].count > 0;
 
-//     let updateQuery = '';
-//     if (idExistsInTranEntry) {
-//       // ID exists in TranEntry, update TranEntry
-//       updateQuery = `
-//         UPDATE TranEntry
-//         SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
-//     } else {
-//       // ID exists in TranEntryTempSub, update TranEntryTempSub
-//       updateQuery = `
-//         UPDATE TranEntryTempSub
-//         SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
-//     }
-//     // Execute the update query
-//     sql.query(updateQuery, (err, result) => {
-//       if (err) {
-//         console.log('Error updating:', err);
-//         return res.status(500).json({ error: 'Internal server error' });
-//       }
+    let updateQuery = '';
+    if (idExistsInTranEntry) {
+      // ID exists in TranEntry, update TranEntry
+      updateQuery = `
+        UPDATE TranEntry
+        SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
+    } else {
+      // ID exists in TranEntryTempSub, update TranEntryTempSub
+      updateQuery = `
+        UPDATE TranEntryTempSub
+        SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
+    }
+    // Execute the update query
+    sql.query(updateQuery, (err, result) => {
+      if (err) {
+        console.log('Error updating:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
 
-//       const rowsAffected = result.rowsAffected && result.rowsAffected[0];
+      const rowsAffected = result.rowsAffected && result.rowsAffected[0];
 
-//       if (rowsAffected > 0) {
-//         return res.json({
-//           message: 'Record updated successfully',
-//           entryNo,
-//           trDate,
-//           flag,
-//           acCode,
-//           subLedgerGroupCode,
-//           subAcCode,
-//           crAmt,
-//           drAmt,
-//           chqNo,
-//           narration1,
-//           narration2,
-//           narration3,
-//         });
-//       } else {
-//         return res.status(404).json({ error: 'Record not found for the specified ID', ID });
-//       }
-//     });
-//   });
-// });
+      if (rowsAffected > 0) {
+        return res.json({
+          message: 'Record updated successfully',
+          entryNo,
+          trDate,
+          flag,
+          acCode,
+          subLedgerGroupCode,
+          subAcCode,
+          crAmt,
+          drAmt,
+          chqNo,
+          narration1,
+          narration2,
+          narration3,
+        });
+      } else {
+        return res.status(404).json({ error: 'Record not found for the specified ID', ID });
+      }
+    });
+  });
+});
 
 // DELETE a TranEntry by ID
 
-// app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
-//   const { entryNo, flag } = req.params;
-//   const query = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
-//   sql.query(query, (err) => {
-//     if (err) {
-//       console.log('Error:', err);
-//       res.status(500).json({ error: 'Internal server error' });
-//     } else {
-//       res.json({ message: 'TranEntry deleted successfully' });
-//     }
-//   });
-// });
+app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
+  const { entryNo, flag } = req.params;
+  const query = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'TranEntry deleted successfully' });
+    }
+  });
+});
 
 
-app.delete('/api/Newtranentries/:entryNo/:flag', (req, res) => {
+app.delete('/api/NewSelltries/:entryNo/:flag', (req, res) => {
   const { entryNo, flag } = req.params;
   const query = `DELETE FROM BillSub WHERE EntryNo=${entryNo} AND Flag=${flag}`;
   console.log("print",entryNo, flag);
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'BillSubTemp deleted successfully' });
+    }
+  });
+});
+
+
+app.delete('/api/Newtranentries/:Id', (req, res) => {
+  const { Id } = req.params;
+  const query = `DELETE FROM TranEntryTempSub WHERE Id=${Id}`;
+  console.log("print",Id);
   sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
@@ -3388,6 +3403,56 @@ app.post('/api/insertDataAndFlag', (req, res) => {
     SELECT flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode , YearCode
     FROM Billsub
     WHERE EntryNo = @entryNo AND Flag = @flag;
+  `;
+
+  const request = new sql.Request();
+  request.input('entryNo', sql.Int, entryNo);
+  request.input('flag', sql.VarChar(255), flag);
+
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Data saved successfully' });
+    }
+  });
+});
+
+app.post('/api/tranEntry-insertDataAndFlag', (req, res) => {
+  const entryNo = req.body.entryNo;
+  const flag = req.body.flag;
+
+  const query = `
+    DELETE FROM TranEntryTempSub;
+
+    
+    INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt)
+    SELECT EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt
+    FROM TranEntry
+    WHERE EntryNo = @entryNo AND Flag = @flag;
+  `;
+
+  const request = new sql.Request();
+  request.input('entryNo', sql.Int, entryNo);
+  request.input('flag', sql.VarChar(255), flag);
+
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Data saved successfully' });
+    }
+  });
+});
+
+app.delete('/api/cleartranEntryTemp', (req, res) => {
+  const entryNo = req.body.entryNo;
+  const flag = req.body.flag;
+
+  const query = `
+    DELETE FROM TranEntryTempSub;
   `;
 
   const request = new sql.Request();
