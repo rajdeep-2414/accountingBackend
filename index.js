@@ -2986,6 +2986,119 @@ app.delete('/api/villages/:villageId', (req, res) => {
 });
 
 
+// For Year Master
+
+app.get('/api/year_master', (req, res) => {
+  const query = 'SELECT * FROM YearMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.post('/api/year_master' , (req,res)=>{
+  const {YearCode, StartYear , EndYear , FinancialYear , DeptCode , CompCode } = req.body
+  const query = `INSERT INTO YearMaster (YearCode, StartYear , EndYear , FinancialYear , DeptCode ,  CompCode ) VALUES ('${YearCode}','${StartYear}','${EndYear}','${FinancialYear}', '${DeptCode}' ,  '${CompCode}')`;
+  sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Year created successfully' });
+      }
+    });
+});
+
+app.put('/api/year_master/:YearCode', (req,res)=>{
+  const {YearCode} = req.params;
+  const {StartYear , EndYear , FinancialYear , DeptCode , CompCode } = req.body
+  const query = `UPDATE YearMaster SET StartYear='${StartYear}', EndYear='${EndYear}', FinancialYear=N'${FinancialYear}', DeptCode=N'${DeptCode}', CompCode=N'${CompCode}' WHERE YearCode='${YearCode}'`;
+  sql.query(query , (err)=>{
+      if(err){
+          console.log('error:',err);
+          res.status(500).json({error:'internal server error'});
+      }else{
+          res.json({ message: 'Year created successfully' });
+      }
+  });
+});
+
+app.delete('/api/year_master/:YearCode', (req,res)=>{
+  const { YearCode } = req.params;
+  //console.log("Comp Code  ",CompCode);
+  const query = `DELETE FROM YearMaster WHERE YearCode=${YearCode}`;
+  sql.query(query,(err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Year deleted successfully' });
+      }
+    });
+});
+
+
+// For CompanyMaster
+
+app.get('/api/company', (req, res) => {
+  const query = 'SELECT * FROM CompanyMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.post('/api/company' , (req,res)=>{
+  const {CompCode, CompName , CompAddress , CompAddress1 , CompAddress2 , CompCity , CompStateCode , CompGSTIN , CompPhone , CompEmail , Fax , WebSite , CompNarr1 , CompNarr2 } = req.body
+  const query =  `INSERT INTO CompanyMaster (CompCode, CompName , CompAddress , CompAddress1 , CompAddress2 ,  CompCity , CompStateCode , CompGSTIN , CompPhone , CompEmail , Fax , WebSite , CompNarr1 , CompNarr2 ) VALUES ('${CompCode}',N'${CompName}',N'${CompAddress}',N'${CompAddress1}', N'${CompAddress2}' ,  N'${CompCity}' , N'${CompStateCode}',N'${CompGSTIN}',N'${CompPhone}',N'${CompEmail}',N'${Fax}', N'${WebSite}',N'${CompNarr1}',N'${CompNarr2}' )`;
+  sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Company created successfully' });
+      }
+    });
+});
+
+
+app.put('/api/company/:CompCode', (req,res)=>{
+  const {CompCode} = req.params;
+  const {CompName , CompAddress , CompAddress1 , CompAddress2 , CompCity , CompStateCode , CompGSTIN , CompPhone , CompEmail , Fax , WebSite , CompNarr1 , CompNarr2 } = req.body
+  const query = `UPDATE CompanyMaster SET CompName=N'${CompName}', CompAddress=N'${CompAddress}', CompAddress1=N'${CompAddress1}', CompAddress2=N'${CompAddress2}', CompCity=N'${CompCity}', CompStateCode='${CompStateCode}', CompGSTIN='${CompGSTIN}', CompPhone='${CompPhone}', CompEmail='${CompEmail}', Fax='${Fax}', WebSite='${WebSite}', CompNarr1='${CompNarr1}', CompNarr2='${CompNarr2}' WHERE CompCode='${CompCode}';`;
+  sql.query(query , (err)=>{
+      if(err){
+          console.log('error:',err);
+          res.status(500).json({error:'internal server error'});
+      }else{
+          res.json({ message: 'Company created successfully' });
+      }
+  });
+});
+
+app.delete('/api/company/:CompCode', (req,res)=>{
+  const { CompCode } = req.params;
+  //console.log("Comp Code  ",CompCode);
+  const query = `DELETE FROM CompanyMaster WHERE CompCode=${CompCode}`;
+  sql.query(query,(err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Company deleted successfully' });
+      }
+    });
+});
+
+
 // TranEntry API
 
 // GET all TranEntries
@@ -3113,7 +3226,71 @@ app.post('/api/Savetranentries', (req, res) => {
   });
 });
 
-app.post('/api/SaveBillentries', (req, res) => {
+app.post('/api/SaveBillentries', async (req, res) => {
+  const { flag } = req.body; 
+  // Get the latest max entry number for the given flag
+  const getMaxEntryNoQuery = `
+    SELECT MAX(ENTRYNO) AS MaxEntryNo
+    FROM Billsub
+    WHERE Flag = '${flag}'`;
+  console.log("getMaxEntryNoQuery",getMaxEntryNoQuery);
+  const maxEntryNoResult = await sql.query(getMaxEntryNoQuery);
+  const maxEntryNo = maxEntryNoResult.recordset[0].MaxEntryNo || 0;
+  console.log("maxEntryNo",maxEntryNo);
+
+
+  // SQL query to insert data into TranEntry and delete from TranEntryTempSub
+  const query = `
+  DELETE TE
+  FROM Billsub AS TE
+  WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}';
+
+    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode)
+    SELECT  
+      TRDATE, 
+      Flag,
+      AcCode, 
+      ItCode,
+      BillNo,
+      BillDate,
+      Desc1,
+      Desc2,
+      MRP,
+      Qty,
+      Rate,
+      Amount,
+      DiscAmt,
+      TaxableAmt,
+      GstRateCode,
+      GstRate,
+      CGstAmt,
+      SGstAmt,
+      IGstAmt,
+      RoundOff,
+      NetAmt,
+      '${maxEntryNo + 1}', 
+      YearCode
+    FROM BillsubTemp;
+
+    DELETE TETS
+    FROM BillsubTemp AS TETS
+    WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}';
+  `;
+
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Data saved and deleted successfully' });
+    }
+  });
+});
+
+
+
+
+app.post('/api/UpdateSavedBillentries', (req, res) => {
   // SQL query to insert data into TranEntry and delete from TranEntryTempSub
   const query = `
     DELETE TE
@@ -3544,7 +3721,7 @@ app.post('/api/sellentriesPost', (req, res) => {
 
   let query = `
     INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode,YearCode) 
-    VALUES ('${flag}','${entryNo}', '${trDate}',  '${AcCode}', '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}')`;
+    VALUES ('${flag}','${entryNo}', '${trDate}', ${AcCode}, '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}')`;
 
   sql.query(query, (err) => {
     if (err) {
@@ -3633,145 +3810,39 @@ app.delete('/api/cleartranEntryTemp', (req, res) => {
   });
 });
 
-// app.put('/api/NewSaleEntries/:entryNo/:flag', (req, res) => {
-//   const { entryNo , YearCode } = req.params;
-//   const {
-//       flag,
-//       trDate,
-//       AcCode,
-//       ItCode,
-//       BillNo,
-//       BillDate,
-//       Desc1,
-//       Desc2,
-//       MRP,
-//       Qty,
-//       Rate,
-//       Amount,
-//       DiscAmt,
-//       TaxableAmt,
-//       GstRateCode,
-//       GstRate,
-//       CGstAmt,
-//       SGstAmt,
-//       IGstAmt,
-//       RoundOff,
-//       NetAmt,
-//       DeptCode
-//   } = req.body;
-
-//   // Always update TranEntryTempSub
-//   const updateQuery = `
-//     UPDATE BillSubTemp
-//     SET TrDate='${trDate}', Flag='${flag}', AcCode='${AcCode}', ItCode='${ItCode}',BillNo='${BillNo}',BillDate='${BillDate}',Desc1='${Desc1}',Desc2='${Desc2}', MRP='${MRP}', Qty='${Qty}', Rate='${Rate}', Amount='${Amount}', DiscAmt='${DiscAmt}', TaxableAmt='${TaxableAmt}', GstRateCode='${GstRateCode}',GstRate='${GstRate}', CGstAmt='${CGstAmt}', SGstAmt='${SGstAmt}', IGstAmt='${IGstAmt}',RoundOff='${RoundOff}', NetAmt='${NetAmt}' WHERE ENTRYNO=${entryNo} AND YearCode=${YearCode} ;`;
-
-//   // Execute the update query
-//   sql.query(updateQuery, (err, result) => {
-//     if (err) {
-//       console.log('Error updating:', err);
-//       return res.status(500).json({ error: 'Internal server error' });
-//     }
-
-//     const rowsAffected = result.rowsAffected && result.rowsAffected[0];
-
-//     if (rowsAffected > 0) {
-//       return res.json({
-//         message: 'Record updated successfully',
-//         entryNo,
-//         trDate,
-//         AcCode,
-//         ItCode,
-//         BillNo,
-//         BillDate,
-//         Desc1,
-//         Desc2,
-//         MRP,
-//         Qty,
-//         Rate,
-//         Amount,
-//         DiscAmt,
-//         TaxableAmt,
-//         GstRateCode,
-//         GstRate,
-//         CGstAmt,
-//         SGstAmt,
-//         IGstAmt,
-//         RoundOff,
-//         NetAmt,
-//         DeptCode
-//       });
-//     } else {
-//       return res.status(404).json({ error: 'Record not found for the specified ID', ID });
-//     }
-//   });
-// });
-
 app.put('/api/NewSaleEntries/:entryNo/:YearCode/:flag', (req, res) => {
-  const { entryNo, YearCode, flag } = req.params;
+  const { entryNo , YearCode , flag} = req.params;
   const {
-    trDate,
-    AcCode,
-    ItCode,
-    BillNo,
-    BillDate,
-    Desc1,
-    Desc2,
-    MRP,
-    Qty,
-    Rate,
-    Amount,
-    DiscAmt,
-    TaxableAmt,
-    GstRateCode,
-    GstRate,
-    CGstAmt,
-    SGstAmt,
-    IGstAmt,
-    RoundOff,
-    NetAmt,
-    DeptCode
+      trDate,
+      AcCode,
+      ItCode,
+      BillNo,
+      BillDate,
+      Desc1,
+      Desc2,
+      MRP,
+      Qty,
+      Rate,
+      Amount,
+      DiscAmt,
+      TaxableAmt,
+      GstRateCode,
+      GstRate,
+      CGstAmt,
+      SGstAmt,
+      IGstAmt,
+      RoundOff,
+      NetAmt,
+      DeptCode
   } = req.body;
 
   // Always update TranEntryTempSub
   const updateQuery = `
     UPDATE BillSubTemp
-    SET TRDATE=@trDate, AcCode=@AcCode, ItCode=@ItCode, BillNo=@BillNo, BillDate=@BillDate, Desc1=@Desc1, Desc2=@Desc2, MRP=@MRP, Qty=@Qty, Rate=@Rate, Amount=@Amount, DiscAmt=@DiscAmt, TaxableAmt=@TaxableAmt, GstRateCode=@GstRateCode, GstRate=@GstRate, CGstAmt=@CGstAmt, SGstAmt=@SGstAmt, IGstAmt=@IGstAmt, RoundOff=@RoundOff, NetAmt=@NetAmt
-    WHERE ENTRYNO=@entryNo AND YearCode=@YearCode AND Flag=@flag;`;
+    SET TrDate='${trDate}', AcCode='${AcCode}', ItCode='${ItCode}',BillNo='${BillNo}',BillDate='${BillDate}',Desc1='${Desc1}',Desc2='${Desc2}', MRP='${MRP}', Qty='${Qty}', Rate='${Rate}', Amount='${Amount}', DiscAmt='${DiscAmt}', TaxableAmt='${TaxableAmt}', GstRateCode='${GstRateCode}',GstRate='${GstRate}', CGstAmt='${CGstAmt}', SGstAmt='${SGstAmt}', IGstAmt='${IGstAmt}',RoundOff='${RoundOff}', NetAmt='${NetAmt}' WHERE ENTRYNO=${entryNo} AND YearCode=${YearCode} AND Flag='${flag}';`;
 
-  // Define parameters
-  const params = {
-    trDate,
-    AcCode,
-    ItCode,
-    BillNo,
-    BillDate,
-    Desc1,
-    Desc2,
-    MRP,
-    Qty,
-    Rate,
-    Amount,
-    DiscAmt,
-    TaxableAmt,
-    GstRateCode,
-    GstRate,
-    CGstAmt,
-    SGstAmt,
-    IGstAmt,
-    RoundOff,
-    NetAmt,
-    entryNo,
-    YearCode,
-    flag,
-  };
-
-  // Execute the update query with parameters
-  const request = new sql.Request();
-  Object.keys(params).forEach((key) => {
-    request.input(key, sql.NVarChar, params[key]);
-  });
-
-  request.query(updateQuery, (err, result) => {
+  // Execute the update query
+  sql.query(updateQuery, (err, result) => {
     if (err) {
       console.log('Error updating:', err);
       return res.status(500).json({ error: 'Internal server error' });
@@ -3806,15 +3877,127 @@ app.put('/api/NewSaleEntries/:entryNo/:YearCode/:flag', (req, res) => {
         DeptCode
       });
     } else {
-      return res.status(404).json({
-        error: 'Record not found for the specified ID',
-        entryNo,
-        flag,
-        YearCode
-      });
+      return res.status(404).json({ error: 'Record not found for the specified ID', entryNo , YearCode , flag });
     }
   });
 });
+
+// app.put('/api/NewSaleEntries/:entryNo/:YearCode/:flag', (req, res) => {
+//   const { entryNo, YearCode, flag } = req.params;
+//   const {
+//     trDate,
+//     AcCode,
+//     ItCode,
+//     BillNo,
+//     BillDate,
+//     Desc1,
+//     Desc2,
+//     MRP,
+//     Qty,
+//     Rate,
+//     Amount,
+//     DiscAmt,
+//     TaxableAmt,
+//     GstRateCode,
+//     GstRate,
+//     CGstAmt,
+//     SGstAmt,
+//     IGstAmt,
+//     RoundOff,
+//     NetAmt,
+//     DeptCode
+//   } = req.body;
+
+//   // Always update TranEntryTempSub
+//   const updateQuery = `
+//     UPDATE BillSubTemp
+//     SET TRDATE=@trDate, AcCode=@AcCode, ItCode=@ItCode, BillNo=@BillNo, BillDate=@BillDate, Desc1=@Desc1, Desc2=@Desc2, MRP=@MRP, Qty=@Qty, Rate=@Rate, Amount=@Amount, DiscAmt=@DiscAmt, TaxableAmt=@TaxableAmt, GstRateCode=@GstRateCode, GstRate=@GstRate, CGstAmt=@CGstAmt, SGstAmt=@SGstAmt, IGstAmt=@IGstAmt, RoundOff=@RoundOff, NetAmt=@NetAmt
+//     WHERE ENTRYNO=@entryNo AND YearCode=@YearCode AND Flag=@flag;`;
+
+//   // Define parameters
+//   const params = {
+//     trDate,
+//     AcCode,
+//     ItCode,
+//     BillNo,
+//     BillDate,
+//     Desc1,
+//     Desc2,
+//     MRP,
+//     Qty,
+//     Rate,
+//     Amount,
+//     DiscAmt,
+//     TaxableAmt,
+//     GstRateCode,
+//     GstRate,
+//     CGstAmt,
+//     SGstAmt,
+//     IGstAmt,
+//     RoundOff,
+//     NetAmt,
+//     entryNo,
+//     YearCode,
+//     flag,
+//   };
+
+//   // Execute the update query with parameters
+  
+//   const request = new sql.Request();
+//   // Object.keys(params).forEach((key) => {
+//   //   // Check if the parameter has been declared before adding it
+//   //   if (!request.parameters.hasOwnProperty(key)) {
+//   //     request.input(key, sql.NVarChar, params[key]);
+//   //   }
+//   // });
+//   request.input('trDate', sql.NVarChar, trDate);
+//   request.input('AcCode', sql.NVarChar, AcCode);
+
+
+//   request.query(updateQuery, (err, result) => {
+//     if (err) {
+//       console.log('Error updating:', err);
+//       return res.status(500).json({ error: 'Internal server error' });
+//     }
+
+//     const rowsAffected = result.rowsAffected && result.rowsAffected[0];
+
+//     if (rowsAffected > 0) {
+//       return res.json({
+//         message: 'Record updated successfully',
+//         entryNo,
+//         trDate,
+//         AcCode,
+//         ItCode,
+//         BillNo,
+//         BillDate,
+//         Desc1,
+//         Desc2,
+//         MRP,
+//         Qty,
+//         Rate,
+//         Amount,
+//         DiscAmt,
+//         TaxableAmt,
+//         GstRateCode,
+//         GstRate,
+//         CGstAmt,
+//         SGstAmt,
+//         IGstAmt,
+//         RoundOff,
+//         NetAmt,
+//         DeptCode
+//       });
+//     } else {
+//       return res.status(404).json({
+//         error: 'Record not found for the specified ID',
+//         entryNo,
+//         flag,
+//         YearCode
+//       });
+//     }
+//   });
+// });
 
 app.delete('/api/billsubtempentries/:entryNo/:YearCode', (req, res) => {
   const { entryNo, YearCode } = req.params;
