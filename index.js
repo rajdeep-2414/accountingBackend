@@ -1099,13 +1099,13 @@ const {
     PackingCode,
     LocationCode,
     HSNCODE,
-    GSTRATECODE,
+    GstRateCode,
     Remark1,
     Remark2,
     Remark3,
     Remark4,
     Remark5,
-    USERID,
+    USERID
 } = req.body;
 const query = `
     INSERT INTO ItemMaster (
@@ -1116,7 +1116,7 @@ const query = `
     VALUES (
     '${ItCode}', N'${ItName}', N'${ItNameEnglish}', '${BarCode}', '${ItemSubGroupCode}', 
     '${ItemCategoryCode}', '${UnitCode}', '${PackingCode}', '${LocationCode}', 
-    '${HSNCODE}', '${GSTRATECODE}', N'${Remark1}', N'${Remark2}', N'${Remark3}', 
+    '${HSNCODE}', ${GstRateCode}, N'${Remark1}', N'${Remark2}', N'${Remark3}', 
     N'${Remark4}', N'${Remark5}', '${USERID}'
     );
 `;
@@ -1124,8 +1124,10 @@ sql.query(query, (err) => {
     if (err) {
     console.log('Error:', err);
     res.status(500).json({ error: 'Internal server error' });
+    console.log('USERID:', USERID);
     } else {
     res.json({ message: 'Item created successfully' });
+    console.log('USERID:', USERID);
     }
 });
 });
@@ -1142,7 +1144,7 @@ const {
     PackingCode,
     LocationCode,
     HSNCODE,
-    GSTRATECODE,
+    GstRateCode,
     Remark1,
     Remark2,
     Remark3,
@@ -1156,7 +1158,7 @@ const query = `
     ItName=N'${ItName}', ItNameEnglish=N'${ItNameEnglish}', BarCode='${BarCode}',
     ItemSubGroupCode='${ItemSubGroupCode}', ItemCategoryCode='${ItemCategoryCode}',
     UnitCode='${UnitCode}', PackingCode='${PackingCode}', LocationCode='${LocationCode}',
-    HSNCODE='${HSNCODE}', GSTRATECODE='${GSTRATECODE}', Remark1=N'${Remark1}',
+    HSNCODE='${HSNCODE}', GSTRATECODE=${GstRateCode}, Remark1=N'${Remark1}',
     Remark2=N'${Remark2}', Remark3=N'${Remark3}', Remark4=N'${Remark4}', Remark5=N'${Remark5}',
     USERID='${USERID}'
     WHERE ItCode='${itemId}';
@@ -1178,7 +1180,7 @@ sql.query(query, (err, result) => {
         PackingCode,
         LocationCode,
         HSNCODE,
-        GSTRATECODE,
+        GstRateCode,
         Remark1,
         Remark2,
         Remark3,
@@ -3572,7 +3574,7 @@ app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
 
 app.delete('/api/NewSelltries/:entryNo/:flag', (req, res) => {
   const { entryNo, flag } = req.params;
-  const query = `DELETE FROM BillSub WHERE EntryNo=${entryNo} AND Flag=${flag}`;
+  const query = `DELETE FROM BillSub WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
   console.log("print",entryNo, flag);
   sql.query(query, (err) => {
     if (err) {
