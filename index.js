@@ -1197,7 +1197,7 @@ sql.query(query, (err, result) => {
   
 app.delete('/api/items-master/:itemId', (req, res) => {
 const { itemId } = req.params;
-const query = `DELETE FROM ItemMaster WHERE ItCode='${itemId}'`;
+const query = `DELETE FROM ItemMaster WHERE ItCode=${itemId}`;
 sql.query(query, (err) => {
     if (err) {
     console.log('Error:', err);
