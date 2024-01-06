@@ -4053,3 +4053,305 @@ app.get('/api/report/:paramCode', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+// For CasteMaster------------------------------------------------------------------------------------
+
+// GET all caste
+app.get('/api/caste', (req, res) => {
+  const query = 'SELECT * FROM CasteMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new caste
+app.post('/api/caste', (req, res) => {
+  const { CasteCode, CasteName, UserID } = req.body;
+  const query = `
+    INSERT INTO CasteMaster (CasteCode, Caste, UserID)
+    VALUES ('${CasteCode}', N'${CasteName}',  N'${UserID}');
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Caste created successfully' });
+    }
+  });
+});
+
+// PUT update an existing caste
+app.put('/api/caste/:CasteCode', (req, res) => {
+  const { CasteCode } = req.params;
+  const { CasteName, UserID } = req.body;
+  const query = `
+    UPDATE CasteMaster
+    SET Caste=N'${CasteName}', UserID=N'${UserID}'
+    WHERE CasteCode='${CasteCode}';
+  `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'Caste updated successfully',
+          CasteCode: CasteCode,
+          CasteName,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a caste
+app.delete('/api/caste/:casteCode', (req, res) => {
+  const { casteCode } = req.params;
+  const query = `DELETE FROM CasteMaster WHERE CasteCode='${casteCode}'`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Caste deleted successfully' });
+    }
+  });
+}); 
+
+// For Qualification Master------------------------------------------------------------------------------------
+
+// GET all Qual
+app.get('/api/qual', (req, res) => {
+  const query = 'SELECT * FROM QualificationMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new Qual
+app.post('/api/qual', (req, res) => {
+  const { QualificationCode, QualificationName, UserID } = req.body;
+
+  const query = `
+    INSERT INTO QualificationMaster (QualificationCode, Qualification, Userid)
+    VALUES ('${QualificationCode}', N'${QualificationName}',  N'${UserID}');
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Qualification created successfully' });
+    }
+  });
+});
+
+// PUT update an existing Qual
+app.put('/api/qual/:qualificationCode', (req, res) => {
+  const { qualificationCode } = req.params;
+
+  const { qualificationName, UserID } = req.body;
+
+  const query = `
+    UPDATE QualificationMaster
+    SET Qualification=N'${qualificationName}', Userid=N'${UserID}'
+    WHERE QualificationCode=${qualificationCode};
+  `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'Qualification updated successfully',
+          QualificationCode: qualificationCode,
+          qualificationName,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a Qual
+app.delete('/api/qual/:QualificationCode', (req, res) => {
+  const { QualificationCode } = req.params;
+  const query = `DELETE FROM QualificationMaster WHERE QualificationCode='${QualificationCode}'`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Qualification deleted successfully' });
+    }
+  });
+}); 
+
+// For Gang Master------------------------------------------------------------------------------------
+
+// GET all gang
+app.get('/api/gang', (req, res) => {
+  const query = 'SELECT * FROM GangMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new Gang
+app.post('/api/gang', (req, res) => {
+  const { GangCode, GangName, GangRemark ,UserID} = req.body;
+
+  const query = `
+    INSERT INTO GangMaster (GangCode, GangName, GangRemark1 ,Userid)
+    VALUES ('${GangCode}', N'${GangName}', N'${GangRemark}' ,N'${UserID}');
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Gang created successfully' });
+    }
+  });
+});
+
+// PUT update an existing Gang
+app.put('/api/gang/:GangCode', (req, res) => {
+  const { GangCode } = req.params;
+  const { GangName, GangRemark ,UserID } = req.body;
+
+  const query = `
+    UPDATE GangMaster
+    SET GangName=N'${GangName}', GangRemark1=N'${GangRemark}' ,Userid=N'${UserID}'
+    WHERE GangCode='${GangCode}';
+  `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'Gang updated successfully',
+          GangCode: GangCode,
+          GangName,
+          GangRemark,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a Gang
+app.delete('/api/gang/:GangCode', (req, res) => {
+  const { GangCode } = req.params;
+  const query = `DELETE FROM GangMaster WHERE GangCode=${GangCode}`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Gang deleted successfully' });
+    }
+  });
+}); 
+
+// For EmpType Master------------------------------------------------------------------------------------
+
+// GET all EmpType
+app.get('/api/emptype', (req, res) => {
+  const query = 'SELECT * FROM EmpTypeMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new EmpType
+app.post('/api/emptype', (req, res) => {
+  const { EmpTypeCode, EmpType } = req.body;
+
+  const query = `
+    INSERT INTO EmpTypeMaster (EmpTypeCode, EmpType)
+    VALUES ('${EmpTypeCode}', N'${EmpType}');
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'EmpType created successfully' });
+    }
+  });
+});
+
+// PUT update an existing EMpType
+app.put('/api/emptype/:EmpTypeCode', (req, res) => {
+  const { EmpTypeCode } = req.params;
+  const { EmpType} = req.body;
+
+  const query = `
+    UPDATE EmpTypeMaster
+    SET EmpType=N'${EmpType}' WHERE EmpTypeCode='${EmpTypeCode}';
+  `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'EmpType updated successfully',
+          EmpTypeCode: EmpTypeCode,
+          EmpType,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a EmpType
+app.delete('/api/emptype/:EmpTypeCode', (req, res) => {
+  const { EmpTypeCode } = req.params;
+  const query = `DELETE FROM EmpTypeMaster WHERE EmpTypeCode=${EmpTypeCode}`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'EmpType deleted successfully' });
+    }
+  });
+});
