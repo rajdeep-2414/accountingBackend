@@ -559,8 +559,8 @@ app.get('/api/items' ,(req,res)=>{
 })
 
 app.post('/api/items' , (req,res)=>{
-    const {DeptCode, DeptName , DeptNameENG , CompCode , Flag} = req.body
-    const query = `INSERT INTO DeptMaster (DeptCode ,DeptName, DeptNameENG, CompCode, Flag) VALUES ('${DeptCode}',N'${DeptName}',N'${DeptNameENG}','${CompCode}',N'${Flag}')`;
+    const {DeptCode, DeptName , DeptNameENG , CompCode , Flag, UserID} = req.body
+    const query = `INSERT INTO DeptMaster (DeptCode ,DeptName, DeptNameENG, CompCode, Flag, UserID) VALUES ('${DeptCode}',N'${DeptName}',N'${DeptNameENG}','${CompCode}',N'${Flag}',${UserID})`;
     sql.query(query, (err) => {
         if (err) {
           console.log('Error:', err);
@@ -573,8 +573,8 @@ app.post('/api/items' , (req,res)=>{
 
 app.put('/api/item/:deptCode', (req,res)=>{
     const {deptCode} = req.params;
-    const { DeptName , DeptNameENG , CompCode , Flag} = req.body
-    const query = `UPDATE DeptMaster SET DeptName=N'${DeptName}',DeptNameENG=N'${DeptNameENG}',CompCode='${CompCode}',Flag=N'${Flag}' WHERE DeptCode=${deptCode}`;
+    const { DeptName , DeptNameENG , CompCode , Flag , UserID} = req.body
+    const query = `UPDATE DeptMaster SET DeptName=N'${DeptName}',DeptNameENG=N'${DeptNameENG}',CompCode='${CompCode}',Flag=N'${Flag}' ,UserID=${UserID} WHERE DeptCode=${deptCode}`;
     sql.query(query , (err)=>{
         if(err){
             console.log('error:',err);
@@ -704,11 +704,12 @@ app.post('/api/designations', (req, res) => {
     DesigCode,
     Designation,
     DesignationEng,
+    UserID
   } = req.body;
 
   const query = `
-    INSERT INTO DesignationMaster (DesigCode, Designation, DesignationEng)
-    VALUES ('${DesigCode}', N'${Designation}', N'${DesignationEng}');
+    INSERT INTO DesignationMaster (DesigCode, Designation, DesignationEng,UserID)
+    VALUES ('${DesigCode}', N'${Designation}', N'${DesignationEng}',${UserID});
   `;
 
   sql.query(query, (err) => {
@@ -726,11 +727,12 @@ app.put('/api/designations/:desigCode', (req, res) => {
   const {
     Designation,
     DesignationEng,
+    UserID
   } = req.body;
 
   const query = `
     UPDATE DesignationMaster
-    SET Designation=N'${Designation}', DesignationEng=N'${DesignationEng}'
+    SET Designation=N'${Designation}', DesignationEng=N'${DesignationEng}',UserID=${UserID}
     WHERE DesigCode='${desigCode}';
   `;
 
@@ -783,11 +785,11 @@ app.get('/api/DistrictMaster' ,(req,res)=>{
 
 app.put('/api/UpdateDistrictMaster/:DistrictCode', (req, res) => {
   const { DistrictCode } = req.params;
-  const { districtName, stateCode, stdCode } = req.body;
+  const { districtName, stateCode, stdCode,UserID } = req.body;
 
   const query = `
     UPDATE DistrictMaster
-    SET DistrictName=N'${districtName}', StateCode='${stateCode}', STDCode='${stdCode}'
+    SET DistrictName=N'${districtName}', StateCode='${stateCode}', STDCode='${stdCode}', UserID=${UserID}
     WHERE DistrictCode=${DistrictCode};
   `;
 
@@ -813,8 +815,8 @@ app.put('/api/UpdateDistrictMaster/:DistrictCode', (req, res) => {
 
 
 app.post('/api/PostDistrictMaster' , (req,res)=>{
-    const {DistrictCode, DistrictName , StateCode , StdCode} = req.body
-    const query = `INSERT INTO DistrictMaster (DistrictCode ,DistrictName, StateCode, STDCode) VALUES (${DistrictCode},N'${DistrictName}',${StateCode},'${StdCode}')`;
+    const {DistrictCode, DistrictName , StateCode , StdCode, UserID} = req.body
+    const query = `INSERT INTO DistrictMaster (DistrictCode ,DistrictName, StateCode, STDCode, UserID) VALUES (${DistrictCode},N'${DistrictName}',${StateCode},'${StdCode}',${UserID})`;
     sql.query(query, (err) => {
         if (err) {
           console.log('Error:', err);
@@ -854,10 +856,10 @@ app.get('/api/gstrates', (req, res) => {
 
 // API to create a new GSTRate
 app.post('/api/gstrates', (req, res) => {
-  const { GSTRateCode, GSTName, GSTPercent, CGSTPercent, SGSTPercent, IGSTPercent, Remark } = req.body;
+  const { GSTRateCode, GSTName, GSTPercent, CGSTPercent, SGSTPercent, IGSTPercent, Remark, UserID} = req.body;
   const query = `
-    INSERT INTO GSTRatesMaster (GSTRateCode, GSTName, GSTPercent, CGSTPercent, SGSTPercent, IGSTPercent, Remark)
-    VALUES ('${GSTRateCode}', N'${GSTName}', '${GSTPercent}', '${CGSTPercent}', '${SGSTPercent}', '${IGSTPercent}', '${Remark}');
+    INSERT INTO GSTRatesMaster (GSTRateCode, GSTName, GSTPercent, CGSTPercent, SGSTPercent, IGSTPercent, Remark, UserID)
+    VALUES ('${GSTRateCode}', N'${GSTName}', '${GSTPercent}', '${CGSTPercent}', '${SGSTPercent}', '${IGSTPercent}', '${Remark}',${UserID});
   `;
   sql.query(query, (err) => {
     if (err) {
@@ -872,11 +874,11 @@ app.post('/api/gstrates', (req, res) => {
 // API to update an existing GSTRate
 app.put('/api/gstrates/:gstrateId', (req, res) => {
   const { gstrateId } = req.params;
-  const { GSTName, GSTPercent, CGSTPercent, SGSTPercent, IGSTPercent, Remark } = req.body;
+  const { GSTName, GSTPercent, CGSTPercent, SGSTPercent, IGSTPercent, Remark, UserID } = req.body;
   const query = `
     UPDATE GSTRatesMaster
     SET GSTName=N'${GSTName}', GSTPercent='${GSTPercent}', CGSTPercent='${CGSTPercent}',
-        SGSTPercent='${SGSTPercent}', IGSTPercent='${IGSTPercent}', Remark=N'${Remark}'
+        SGSTPercent='${SGSTPercent}', IGSTPercent='${IGSTPercent}', Remark=N'${Remark}', UserID=${UserID}
     WHERE GSTRateCode='${gstrateId}';
   `;
   sql.query(query, (err, result) => {
@@ -936,10 +938,11 @@ app.post('/api/itemcategories', (req, res) => {
     ItemCategoryName,
     ItemCategoryNameEng,
     ItemSubGroupCode,
+    UserID
   } = req.body;
   const query = `
-    INSERT INTO ItemCategoryMaster (ItemCategoryCode, ItemCategoryName, ItemCategoryNameEng, ItemSubGroupCode)
-    VALUES ('${ItemCategoryCode}', N'${ItemCategoryName}', N'${ItemCategoryNameEng}', '${ItemSubGroupCode}');
+    INSERT INTO ItemCategoryMaster (ItemCategoryCode, ItemCategoryName, ItemCategoryNameEng, ItemSubGroupCode,UserID)
+    VALUES ('${ItemCategoryCode}', N'${ItemCategoryName}', N'${ItemCategoryNameEng}', '${ItemSubGroupCode}',${UserID});
   `;
   sql.query(query, (err) => {
     if (err) {
@@ -957,10 +960,11 @@ app.put('/api/itemcategories/:itemCategoryId', (req, res) => {
     ItemCategoryName,
     ItemCategoryNameEng,
     ItemSubGroupCode,
+    UserID
   } = req.body;
   const query = `
     UPDATE ItemCategoryMaster
-    SET ItemCategoryName=N'${ItemCategoryName}', ItemCategoryNameEng=N'${ItemCategoryNameEng}', ItemSubGroupCode='${ItemSubGroupCode}'
+    SET ItemCategoryName=N'${ItemCategoryName}', ItemCategoryNameEng=N'${ItemCategoryNameEng}', ItemSubGroupCode='${ItemSubGroupCode}',UserID=${UserID}
     WHERE ItemCategoryCode='${itemCategoryId}';
   `;
   sql.query(query, (err, result) => {
@@ -975,6 +979,7 @@ app.put('/api/itemcategories/:itemCategoryId', (req, res) => {
           ItemCategoryName,
           ItemCategoryNameEng,
           ItemSubGroupCode,
+          USERID
         });
       } else {
         res.status(404).json({ error: 'Record not found' });
@@ -1014,10 +1019,10 @@ app.get('/api/item-groups', (req, res) => {
   });
   
   app.post('/api/item-groups', (req, res) => {
-    const { ItemGroupCode, ItemGroupName, ItemGroupNameEnglish, Remark1, Remark2, UserId } = req.body;
+    const { ItemGroupCode, ItemGroupName, ItemGroupNameEnglish, Remark1, Remark2, USERID } = req.body;
     const query = `
-      INSERT INTO ItemGroupMaster (ItemGroupCode, ItemGroupName, ItemGroupNameEnglish, Remark1, Remark2, UserId)
-      VALUES ('${ItemGroupCode}', N'${ItemGroupName}', N'${ItemGroupNameEnglish}', N'${Remark1}', N'${Remark2}', '${UserId}');
+      INSERT INTO ItemGroupMaster (ItemGroupCode, ItemGroupName, ItemGroupNameEnglish, Remark1, Remark2, USERID)
+      VALUES ('${ItemGroupCode}', N'${ItemGroupName}', N'${ItemGroupNameEnglish}', N'${Remark1}', N'${Remark2}', ${USERID});
     `;
     sql.query(query, (err) => {
       if (err) {
@@ -1031,11 +1036,11 @@ app.get('/api/item-groups', (req, res) => {
   
   app.put('/api/item-groups/:ItemGroupCode', (req, res) => {
     const { ItemGroupCode } = req.params;
-    const { ItemGroupName, ItemGroupNameEnglish, Remark1, Remark2, UserId } = req.body;
+    const { ItemGroupName, ItemGroupNameEnglish, Remark1, Remark2, USERID } = req.body;
     const query = `
       UPDATE ItemGroupMaster 
       SET ItemGroupName=N'${ItemGroupName}', ItemGroupNameEnglish=N'${ItemGroupNameEnglish}', 
-      Remark1=N'${Remark1}', Remark2=N'${Remark2}', UserId='${UserId}' 
+      Remark1=N'${Remark1}', Remark2=N'${Remark2}', USERID=${USERID}
       WHERE ItemGroupCode=${ItemGroupCode};
     `;
     sql.query(query, (err, result) => {
@@ -1495,10 +1500,10 @@ app.get('/api/locations', (req, res) => {
 
 // POST endpoint to create a new location
 app.post('/api/locations', (req, res) => {
-  const { LocationCode, LocationName } = req.body;
+  const { LocationCode, LocationName , UserID } = req.body;
   const query = `
-    INSERT INTO LocationMaster (LocationCode, LocationName)
-    VALUES (N'${LocationCode}', N'${LocationName}');
+    INSERT INTO LocationMaster (LocationCode, LocationName,UserID)
+    VALUES (N'${LocationCode}', N'${LocationName}',${UserID});
   `;
   sql.query(query, (err) => {
     if (err) {
@@ -1513,10 +1518,10 @@ app.post('/api/locations', (req, res) => {
 // PUT endpoint to update a location
 app.put('/api/locations/:locationCode', (req, res) => {
   const { locationCode } = req.params;
-  const { LocationName } = req.body;
+  const { LocationName, UserID } = req.body;
   const query = `
     UPDATE LocationMaster
-    SET LocationName=N'${LocationName}'
+    SET LocationName=N'${LocationName}',UserID=${UserID}
     WHERE LocationCode=N'${locationCode}';
   `;
   sql.query(query, (err, result) => {
@@ -1573,10 +1578,11 @@ app.delete('/api/locations/:locationCode', (req, res) => {
       Srno,
       Narration,
       Narration1,
+      UserID
     } = req.body;
     const query = `
-      INSERT INTO NarrationMaster (Srno, Narration, Narration1)
-      VALUES ('${Srno}', N'${Narration}', N'${Narration1}');
+      INSERT INTO NarrationMaster (Srno, Narration, Narration1,UserID)
+      VALUES ('${Srno}', N'${Narration}', N'${Narration1}',${UserID});
     `;
     sql.query(query, (err) => {
       if (err) {
@@ -1594,10 +1600,11 @@ app.delete('/api/locations/:locationCode', (req, res) => {
     const {
       Narration,
       Narration1,
+      UserID
     } = req.body;
     const query = `
       UPDATE NarrationMaster
-      SET Narration=N'${Narration}', Narration1=N'${Narration1}'
+      SET Narration=N'${Narration}', Narration1=N'${Narration1}',UserID=${UserID}
       WHERE Srno=N'${narrationId}';
     `;
     sql.query(query, (err, result) => {
@@ -1649,10 +1656,10 @@ app.get('/api/packing', (req, res) => {
 });
 
 app.post('/api/packing', (req, res) => {
-  const { PackingCode, PackingName, ConversionFactor } = req.body;
+  const { PackingCode, PackingName, ConversionFactor,UserID } = req.body;
   const query = `
-    INSERT INTO PackingMaster (PackingCode, PackingName, ConversionFactor)
-    VALUES ('${PackingCode}', N'${PackingName}', '${ConversionFactor}');
+    INSERT INTO PackingMaster (PackingCode, PackingName, ConversionFactor,UserID)
+    VALUES ('${PackingCode}', N'${PackingName}', '${ConversionFactor}',${UserID});
   `;
   sql.query(query, (err) => {
     if (err) {
@@ -1666,10 +1673,10 @@ app.post('/api/packing', (req, res) => {
 
 app.put('/api/packing/:packingCode', (req, res) => {
   const { packingCode } = req.params;
-  const { PackingName, ConversionFactor } = req.body;
+  const { PackingName, ConversionFactor,UserID} = req.body;
   const query = `
     UPDATE PackingMaster
-    SET PackingName=N'${PackingName}', ConversionFactor='${ConversionFactor}'
+    SET PackingName=N'${PackingName}', ConversionFactor='${ConversionFactor}', UserID=${UserID}
     WHERE PackingCode='${packingCode}';
   `;
   sql.query(query, (err, result) => {
@@ -1885,7 +1892,7 @@ app.post('/api/subledgerMaster', (req, res) => {
     SubAcHeadEng,
     Address1,
     Address2,
-    VillageCode,
+    StateCode,
     PhoneNo,
     MobileNo,
     Email,
@@ -1903,10 +1910,10 @@ app.post('/api/subledgerMaster', (req, res) => {
 
   const query = `
     INSERT INTO SubLedgerMaster (SubAcCode, SubLedgerGroupCode, SubSrNo, SubAcHead, SubAcHeadEng,
-      Address1, Address2, VillageCode, PhoneNo, MobileNo, Email, AadharCardNo, BankName, BankAcNo,
+      Address1, Address2, StateCode, PhoneNo, MobileNo, Email, AadharCardNo, BankName, BankAcNo,
       PANo, GSTNO, Remark1, Remark2, Remark3, StatusCode, USERID)
     VALUES ('${SubAcCode}', '${SubLedgerGroupCode}', '${SubSrNo}', N'${SubAcHead}', '${SubAcHeadEng}',
-      N'${Address1}', N'${Address2}', '${VillageCode}', '${PhoneNo}', '${MobileNo}', '${Email}',
+      N'${Address1}', N'${Address2}', '${StateCode}', '${PhoneNo}', '${MobileNo}', '${Email}',
       '${AadharCardNo}', N'${BankName}', '${BankAcNo}', '${PANo}', '${GSTNO}', N'${Remark1}',
       N'${Remark2}', N'${Remark3}', '${StatusCode}', N'${USERID}');
   `;
@@ -1931,7 +1938,7 @@ app.put('/api/subledgerMaster/:SubAcCode', (req, res) => {
     SubAcHeadEng,
     Address1,
     Address2,
-    VillageCode,
+    StateCode,
     PhoneNo,
     MobileNo,
     Email,
@@ -1951,7 +1958,7 @@ app.put('/api/subledgerMaster/:SubAcCode', (req, res) => {
   UPDATE SubLedgerMaster
   SET SubLedgerGroupCode='${SubLedgerGroupCode}', SubSrNo='${SubSrNo}', SubAcHead=N'${SubAcHead}',
     SubAcHeadEng=N'${SubAcHeadEng}', Address1=N'${Address1}', Address2=N'${Address2}',
-    VillageCode='${VillageCode}', PhoneNo='${PhoneNo}', MobileNo='${MobileNo}', Email='${Email}',
+    StateCode='${StateCode}', PhoneNo='${PhoneNo}', MobileNo='${MobileNo}', Email='${Email}',
     AadharCardNo='${AadharCardNo}', BankName=N'${BankName}', BankAcNo='${BankAcNo}', PANo='${PANo}',
     GSTNO='${GSTNO}', Remark1=N'${Remark1}', Remark2=N'${Remark2}', Remark3=N'${Remark3}',
     StatusCode='${StatusCode}', USERID='${USERID}'
@@ -2216,10 +2223,11 @@ app.post('/api/tranItMaster', (req, res) => {
     ClQty,
     ClWt,
     ClAmt,
+    UserID
   } = req.body;
   const query = `
-    INSERT INTO TranItMaster (YearCode, DeptCode, ItCode, Rate, OpQty, OpWt, OpAmt, ClQty, ClWt, ClAmt)
-    VALUES ('${YearCode}', '${DeptCode}', '${ItCode}', '${Rate}', '${OpQty}', '${OpWt}', '${OpAmt}', '${ClQty}', '${ClWt}', '${ClAmt}');
+    INSERT INTO TranItMaster (YearCode, DeptCode, ItCode, Rate, OpQty, OpWt, OpAmt, ClQty, ClWt, ClAmt,UserID)
+    VALUES ('${YearCode}', '${DeptCode}', '${ItCode}', '${Rate}', '${OpQty}', '${OpWt}', '${OpAmt}', '${ClQty}', '${ClWt}', '${ClAmt}',${UserID});
   `;
   sql.query(query, (err) => {
     if (err) {
@@ -2243,11 +2251,12 @@ app.put('/api/tranItMaster/:DeptCode/:ItCode', (req, res) => {
     ClQty,
     ClWt,
     ClAmt,
+    UserID
   } = req.body;
   const query = `
     UPDATE TranItMaster
     SET YearCode='${YearCode}', DeptCode='${DeptCode}', ItCode='${ItCode}', Rate='${Rate}', 
-        OpQty='${OpQty}', OpWt='${OpWt}', OpAmt='${OpAmt}', ClQty='${ClQty}', ClWt='${ClWt}', ClAmt='${ClAmt}'
+        OpQty='${OpQty}', OpWt='${OpWt}', OpAmt='${OpAmt}', ClQty='${ClQty}', ClWt='${ClWt}', ClAmt='${ClAmt}',UserID=${UserID}
     WHERE DeptCode='${DeptCode}' AND ItCode='${ItCode}';
   `;
   sql.query(query, (err, result) => {
@@ -3116,18 +3125,46 @@ app.delete('/api/company/:CompCode', (req,res)=>{
 //   });
 // });
 
-app.get('/api/distinct-tranentries/:flag', (req, res) => {
-  const flag = req.params.flag; // Get the "flag" from the route parameters
+// app.get('/api/distinct-tranentries/:flag', (req, res) => {
+//   const flag = req.params.flag; 
 
-  // Make sure to validate "flag" and handle any potential security concerns
+//   const query = `
+//     SELECT distinct EntryNo, TrDate, Flag
+//     FROM TranEntry
+//     WHERE Flag = @flag`; 
+
+//   const request = new sql.Request();
+//   request.input('flag', sql.NVarChar, flag);
+
+//   request.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json(result.recordset);
+//     }
+//   });
+// });
+
+app.get('/api/distinct-tranentries/:flag/:dept/:year/:company', (req, res) => {
+  const flag = req.params.flag;
+  const dept = req.params.dept;
+  const year = req.params.year;
+  const company = req.params.company;
 
   const query = `
     SELECT distinct EntryNo, TrDate, Flag
     FROM TranEntry
-    WHERE Flag = @flag`; // Use parameterized query to avoid SQL injection
+    WHERE Flag = @flag
+      AND DeptCode = @dept
+      AND YearCode = @year
+      AND CompCode = @company`;
 
   const request = new sql.Request();
-  request.input('flag', sql.NVarChar, flag); // Define the SQL parameter for "flag"
+  request.input('flag', sql.NVarChar, flag);
+  request.input('dept', sql.NVarChar, dept);
+  request.input('year', sql.NVarChar, year);
+  request.input('company', sql.NVarChar, company);
 
   request.query(query, (err, result) => {
     if (err) {
@@ -3138,6 +3175,8 @@ app.get('/api/distinct-tranentries/:flag', (req, res) => {
     }
   });
 });
+
+
 
 
 // app.get('/api/tranentries/:entryNo', (req, res) => {
@@ -3205,8 +3244,8 @@ app.post('/api/Savetranentries', (req, res) => {
           AND TETS.Flag = TE.Flag
       );
 
-    INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt)
-    SELECT  EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt
+    INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID)
+    SELECT  EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt , DeptCode, YearCode, CompCode, UserID
     FROM TranEntryTempSub;
 
     DELETE TETS
@@ -3228,6 +3267,69 @@ app.post('/api/Savetranentries', (req, res) => {
   });
 });
 
+// app.post('/api/SaveBillentries', async (req, res) => {
+//   const { flag } = req.body; 
+//   // Get the latest max entry number for the given flag
+//   const getMaxEntryNoQuery = `
+//     SELECT MAX(ENTRYNO) AS MaxEntryNo
+//     FROM Billsub
+//     WHERE Flag = '${flag}'`;
+//   console.log("getMaxEntryNoQuery",getMaxEntryNoQuery);
+//   const maxEntryNoResult = await sql.query(getMaxEntryNoQuery);
+//   const maxEntryNo = maxEntryNoResult.recordset[0].MaxEntryNo || 0;
+//   console.log("maxEntryNo",maxEntryNo);
+
+
+//   // SQL query to insert data into TranEntry and delete from TranEntryTempSub
+//   const query = `
+//   DELETE TE
+//   FROM Billsub AS TE
+//   WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}';
+
+//     INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID)
+//     SELECT  
+//       TRDATE, 
+//       Flag,
+//       AcCode, 
+//       ItCode,
+//       BillNo,
+//       BillDate,
+//       Desc1,
+//       Desc2,
+//       MRP,
+//       Qty,
+//       Rate,
+//       Amount,
+//       DiscAmt,
+//       TaxableAmt,
+//       GstRateCode,
+//       GstRate,
+//       CGstAmt,
+//       SGstAmt,
+//       IGstAmt,
+//       RoundOff,
+//       NetAmt,
+//       '${maxEntryNo + 1}', 
+//       YearCode,
+//       CompCode,
+//       USERID
+//     FROM BillsubTemp;
+
+//     DELETE TETS
+//     FROM BillsubTemp AS TETS
+//     WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}';
+//   `;
+
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Data saved and deleted successfully' });
+//     }
+//   });
+// });
+
 app.post('/api/SaveBillentries', async (req, res) => {
   const { flag } = req.body; 
   // Get the latest max entry number for the given flag
@@ -3240,14 +3342,13 @@ app.post('/api/SaveBillentries', async (req, res) => {
   const maxEntryNo = maxEntryNoResult.recordset[0].MaxEntryNo || 0;
   console.log("maxEntryNo",maxEntryNo);
 
-
   // SQL query to insert data into TranEntry and delete from TranEntryTempSub
   const query = `
-  DELETE TE
-  FROM Billsub AS TE
-  WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}';
+    DELETE TE
+    FROM Billsub AS TE
+    WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}';
 
-    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode)
+    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID)
     SELECT  
       TRDATE, 
       Flag,
@@ -3271,7 +3372,10 @@ app.post('/api/SaveBillentries', async (req, res) => {
       RoundOff,
       NetAmt,
       '${maxEntryNo + 1}', 
-      YearCode
+      YearCode,
+      DeptCode,
+      CompCode,
+      USERID
     FROM BillsubTemp;
 
     DELETE TETS
@@ -3292,6 +3396,7 @@ app.post('/api/SaveBillentries', async (req, res) => {
 
 
 
+
 app.post('/api/UpdateSavedBillentries', (req, res) => {
   // SQL query to insert data into TranEntry and delete from TranEntryTempSub
   const query = `
@@ -3304,8 +3409,8 @@ app.post('/api/UpdateSavedBillentries', (req, res) => {
           AND TETS.Flag = TE.Flag
       );
 
-    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode)
-    SELECT  TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode
+    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode,DeptCode,CompCode,USERID)
+    SELECT  TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode,DeptCode,CompCode,USERID
     FROM BillsubTemp;
 
     DELETE TETS
@@ -3340,11 +3445,15 @@ app.post('/api/tranentriesPost', (req, res) => {
     narration1,
     narration2,
     narration3,
+    DeptCode,
+    YearCode,
+    CompCode,
+    UserID,
     flag
   } = req.body;
 
   let query = `
-    INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt`;
+    INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID`;
 
   // Conditionally add chqNo to the SQL query if it's provided
   if (chqNo) {
@@ -3357,7 +3466,7 @@ app.post('/api/tranentriesPost', (req, res) => {
   }
 
   query += `)
-    VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGroupCode}', '${subAcCode}', '${crAmt}', '${drAmt}'`;
+    VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGroupCode}', '${subAcCode}', '${crAmt}', '${drAmt}',${DeptCode},${YearCode},${CompCode},${UserID}`;
 
   // Conditionally add the values for chqNo and narration1
   if (chqNo) {
@@ -3450,11 +3559,15 @@ app.put('/api/tranentries/:entryNo', (req, res) => {
     Narration1,
     Narration2,
     Narration3,
+    DeptCode,
+    YearCode,
+    CompCode,
+    UserID
   } = req.body;
   const query = `
     UPDATE TranEntry
-    SET TrDate='${TrDate}', Flag='${Flag}', AcCode='${AcCode}', SubLedgerGroupCode='${SubLedgerGroupCode}', SubAcCode='${SubAcCode}', CrAmt='${CrAmt}', DrAmt='${DrAmt}', ChqNo='${ChqNo}', Narration1=N'${Narration1}', Narration2=N'${Narration2}', Narration3=N'${Narration3}'
-    WHERE EntryNo='${entryNo}';
+    SET TrDate='${TrDate}', Flag='${Flag}', AcCode='${AcCode}', SubLedgerGroupCode='${SubLedgerGroupCode}', SubAcCode='${SubAcCode}', CrAmt='${CrAmt}', DrAmt='${DrAmt}', ChqNo='${ChqNo}', Narration1=N'${Narration1}', Narration2=N'${Narration2}', Narration3=N'${Narration3}',
+    DeptCode=${DeptCode},YearCode=${YearCode} ,CompCode=${CompCode} ,UserID=${UserID} WHERE EntryNo='${entryNo}';
   `;
   sql.query(query, (err, result) => {
     if (err) {
@@ -3603,19 +3716,26 @@ app.delete('/api/Newtranentries/:Id', (req, res) => {
 
 
 //For sell entry
-app.get('/api/distinct-sellentries/:flag', (req, res) => {
-  const flag = req.params.flag; // Get the "flag" from the route parameters
-
-
-  // Make sure to validate "flag" and handle any potential security concerns
+app.get('/api/distinct-sellentries/:flag/:dept/:year/:company', (req, res) => {
+  const flag = req.params.flag;
+  const dept = req.params.dept;
+  const year = req.params.year;
+  const company = req.params.company;
+  // Validate inputs and handle potential security concerns
 
   const query = `
     SELECT distinct EntryNo, TrDate, Flag
     FROM Billsub
-    WHERE Flag = @flag`; // Use parameterized query to avoid SQL injection
+    WHERE Flag = @flag
+      AND DeptCode = @dept
+      AND YearCode = @year
+      AND CompCode = @company`; // Adjust the WHERE clause accordingly
 
   const request = new sql.Request();
-  request.input('flag', sql.NVarChar, flag); // Define the SQL parameter for "flag"
+  request.input('flag', sql.NVarChar, flag);
+  request.input('dept', sql.NVarChar, dept);
+  request.input('year', sql.NVarChar, year);
+  request.input('company', sql.NVarChar, company);
 
   request.query(query, (err, result) => {
     if (err) {
@@ -3626,6 +3746,7 @@ app.get('/api/distinct-sellentries/:flag', (req, res) => {
     }
   });
 });
+
 
 // app.get('/api/billsubtemp/:flag', (req, res) => {
 //   const flag = req.params.flag;  // Get the "flag" from the URL parameters
@@ -3717,13 +3838,15 @@ app.post('/api/sellentriesPost', (req, res) => {
       RoundOff,
       NetAmt,
       DeptCode,
-      YearCode
+      YearCode,
+      CompCode,
+      USERID
   } = req.body;
 
 
   let query = `
-    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode,YearCode) 
-    VALUES ('${flag}','${entryNo}', '${trDate}', ${AcCode}, '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}')`;
+    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode, YearCode, CompCode, USERID) 
+    VALUES ('${flag}','${entryNo}', '${trDate}', ${AcCode}, '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}',${CompCode},${USERID})`;
 
   sql.query(query, (err) => {
     if (err) {
@@ -4299,11 +4422,11 @@ app.get('/api/emptype', (req, res) => {
 
 // POST a new EmpType
 app.post('/api/emptype', (req, res) => {
-  const { EmpTypeCode, EmpType } = req.body;
+  const { EmpTypeCode, EmpType , UserID } = req.body;
 
   const query = `
-    INSERT INTO EmpTypeMaster (EmpTypeCode, EmpType)
-    VALUES ('${EmpTypeCode}', N'${EmpType}');
+    INSERT INTO EmpTypeMaster (EmpTypeCode, EmpType ,UserID)
+    VALUES ('${EmpTypeCode}', N'${EmpType}',${UserID});
   `;
   sql.query(query, (err) => {
     if (err) {
@@ -4318,11 +4441,11 @@ app.post('/api/emptype', (req, res) => {
 // PUT update an existing EMpType
 app.put('/api/emptype/:EmpTypeCode', (req, res) => {
   const { EmpTypeCode } = req.params;
-  const { EmpType} = req.body;
+  const { EmpType, UserID} = req.body;
 
   const query = `
     UPDATE EmpTypeMaster
-    SET EmpType=N'${EmpType}' WHERE EmpTypeCode='${EmpTypeCode}';
+    SET EmpType=N'${EmpType}' UserID=${UserID} WHERE EmpTypeCode='${EmpTypeCode}';
   `;
   sql.query(query, (err, result) => {
     if (err) {
