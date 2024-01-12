@@ -3346,7 +3346,7 @@ app.post('/api/SaveBillentries', async (req, res) => {
     FROM Billsub AS TE
     WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}' AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode}';
 
-    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID)
+    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID, COMPUTERID)
     SELECT  
       TRDATE, 
       Flag,
@@ -3373,7 +3373,8 @@ app.post('/api/SaveBillentries', async (req, res) => {
       YearCode,
       DeptCode,
       CompCode,
-      USERID
+      USERID,
+      COMPUTERID
     FROM BillsubTemp;
 
     DELETE TETS
@@ -3411,12 +3412,12 @@ app.post('/api/UpdateSavedBillentries', (req, res) => {
     INSERT INTO Billsub (
       TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, 
       Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, 
-      RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID
+      RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID, COMPUTERID
     )
     SELECT  
-      '${trDate}',Flag,${AcCode},ItCode,${parseInt(BillNo)},'${BillDate}','${Desc1}','${Desc2}', 
+      '${trDate}',Flag,${AcCode},ItCode,'${BillNo}','${BillDate}','${Desc1}','${Desc2}', 
       MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, 
-      SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID
+      SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID , COMPUTERID
     FROM BillsubTemp;
 
     DELETE FROM BillsubTemp
@@ -3735,7 +3736,7 @@ app.get('/api/distinct-sellentries/:flag/:dept/:year/:company', (req, res) => {
   // Validate inputs and handle potential security concerns
 
   const query = `
-    SELECT distinct ENTRYNO, BILLNO, TRDATE, FLAG , CompCode , BILLDATE ,ACCODE,DESC1,DESC2
+    SELECT distinct ENTRYNO, BILLNO, TRDATE, FLAG , CompCode , BILLDATE ,ACCODE,DESC1,DESC2,COMPUTERID
     FROM Billsub
     WHERE Flag = @flag
       AND DeptCode = @dept
@@ -3851,13 +3852,14 @@ app.post('/api/sellentriesPost', (req, res) => {
       DeptCode,
       YearCode,
       CompCode,
-      USERID
+      USERID,
+      uniqueCode
   } = req.body;
 
 
   let query = `
-    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode, YearCode, CompCode, USERID) 
-    VALUES ('${flag}','${entryNo}', '${trDate}', ${AcCode}, '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}',${CompCode},${USERID})`;
+    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode, YearCode, CompCode, USERID, COMPUTERID) 
+    VALUES ('${flag}','${entryNo}', '${trDate}', ${AcCode}, '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}',${CompCode},${USERID},${uniqueCode})`;
 
   sql.query(query, (err) => {
     if (err) {
@@ -3879,8 +3881,8 @@ app.post('/api/insertDataAndFlag', (req, res) => {
   const query = `
     DELETE FROM BillsubTemp;
 
-    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode ,YearCode, USERID ,CompCode)
-    SELECT flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode , YearCode ,USERID ,CompCode
+    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode ,YearCode, USERID ,CompCode,COMPUTERID)
+    SELECT flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode , YearCode ,USERID ,CompCode,COMPUTERID
     FROM Billsub
     WHERE EntryNo = @entryNo AND Flag = @flag  AND DeptCode = @DeptCode  AND YearCode = @YearCode  AND CompCode = @CompCode;
   `;
@@ -3952,8 +3954,8 @@ app.delete('/api/cleartranEntryTemp', (req, res) => {
   });
 });
 
-app.put('/api/NewSaleEntries/:entryNo/:YearCode/:flag', (req, res) => {
-  const { entryNo , YearCode , flag} = req.params;
+app.put('/api/NewSaleEntries/:entryNo/:uniqueCode/:flag', (req, res) => {
+  const { entryNo , flag , uniqueCode} = req.params;
   const {
       trDate,
       AcCode,
@@ -3981,7 +3983,7 @@ app.put('/api/NewSaleEntries/:entryNo/:YearCode/:flag', (req, res) => {
   // Always update TranEntryTempSub
   const updateQuery = `
     UPDATE BillSubTemp
-    SET TrDate='${trDate}', AcCode='${AcCode}', ItCode='${ItCode}',BillNo='${BillNo}',BillDate='${BillDate}',Desc1='${Desc1}',Desc2='${Desc2}', MRP='${MRP}', Qty='${Qty}', Rate='${Rate}', Amount='${Amount}', DiscAmt='${DiscAmt}', TaxableAmt='${TaxableAmt}', GstRateCode='${GstRateCode}',GstRate='${GstRate}', CGstAmt='${CGstAmt}', SGstAmt='${SGstAmt}', IGstAmt='${IGstAmt}',RoundOff='${RoundOff}', NetAmt='${NetAmt}' WHERE ENTRYNO=${entryNo} AND YearCode=${YearCode} AND Flag='${flag}';`;
+    SET TrDate='${trDate}', AcCode='${AcCode}', ItCode='${ItCode}',BillNo='${BillNo}',BillDate='${BillDate}',Desc1='${Desc1}',Desc2='${Desc2}', MRP='${MRP}', Qty='${Qty}', Rate='${Rate}', Amount='${Amount}', DiscAmt='${DiscAmt}', TaxableAmt='${TaxableAmt}', GstRateCode='${GstRateCode}',GstRate='${GstRate}', CGstAmt='${CGstAmt}', SGstAmt='${SGstAmt}', IGstAmt='${IGstAmt}',RoundOff='${RoundOff}', NetAmt='${NetAmt}'  WHERE ENTRYNO=${entryNo} AND COMPUTERID=${uniqueCode} AND Flag='${flag}' ;`;
 
   // Execute the update query
   sql.query(updateQuery, (err, result) => {
@@ -4019,7 +4021,7 @@ app.put('/api/NewSaleEntries/:entryNo/:YearCode/:flag', (req, res) => {
         DeptCode
       });
     } else {
-      return res.status(404).json({ error: 'Record not found for the specified ID', entryNo , YearCode , flag });
+      return res.status(404).json({ error: 'Record not found for the specified ID', entryNo , uniqueCode , flag });
     }
   });
 });
