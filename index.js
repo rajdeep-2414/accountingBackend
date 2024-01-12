@@ -2094,8 +2094,6 @@ app.delete('/api/talukas/:talukaId', (req, res) => {
   });
 });
 
-
-
 //TranGroupMaster entries
 // GET all TranGroupMaster entries
 app.get('/api/trangroups', (req, res) => {
@@ -3331,12 +3329,12 @@ app.post('/api/Savetranentries', (req, res) => {
 // });
 
 app.post('/api/SaveBillentries', async (req, res) => {
-  const { flag } = req.body; 
+  const { flag,DeptCode,YearCode,CompCode } = req.body; 
   // Get the latest max entry number for the given flag
   const getMaxEntryNoQuery = `
     SELECT MAX(ENTRYNO) AS MaxEntryNo
     FROM Billsub
-    WHERE Flag = '${flag}'`;
+    WHERE Flag = '${flag}'AND DeptCode = '${DeptCode}'AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'`;
   console.log("getMaxEntryNoQuery",getMaxEntryNoQuery);
   const maxEntryNoResult = await sql.query(getMaxEntryNoQuery);
   const maxEntryNo = maxEntryNoResult.recordset[0].MaxEntryNo || 0;
@@ -3346,7 +3344,7 @@ app.post('/api/SaveBillentries', async (req, res) => {
   const query = `
     DELETE TE
     FROM Billsub AS TE
-    WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}';
+    WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}' AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode}';
 
     INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID)
     SELECT  
@@ -3380,7 +3378,7 @@ app.post('/api/SaveBillentries', async (req, res) => {
 
     DELETE TETS
     FROM BillsubTemp AS TETS
-    WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}';
+    WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}'AND TETS.DeptCode = '${DeptCode}' AND TETS.YearCode = '${YearCode}'  AND TETS.CompCode = '${CompCode}';;
   `;
 
   sql.query(query, (err) => {
@@ -3396,32 +3394,43 @@ app.post('/api/SaveBillentries', async (req, res) => {
 
 
 
-
 app.post('/api/UpdateSavedBillentries', (req, res) => {
-  // SQL query to insert data into TranEntry and delete from TranEntryTempSub
+  const { trDate, AcCode, BillNo, BillDate, Desc1, Desc2 } = req.body;
   const query = `
-    DELETE TE
-      FROM Billsub AS TE
-      WHERE EXISTS (
-        SELECT 1 
-        FROM BillsubTemp AS TETS 
-        WHERE TETS.EntryNo = TE.EntryNo 
-          AND TETS.Flag = TE.Flag
-      );
+    DELETE FROM Billsub
+    WHERE EXISTS (
+      SELECT 1 
+      FROM BillsubTemp AS TETS 
+      WHERE TETS.EntryNo = Billsub.EntryNo 
+        AND TETS.Flag = Billsub.Flag
+        AND TETS.DeptCode = Billsub.DeptCode 
+        AND TETS.YearCode = Billsub.YearCode 
+        AND TETS.CompCode = Billsub.CompCode 
+    );
 
-    INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode,DeptCode,CompCode,USERID)
-    SELECT  TRDATE, Flag, AcCode, ItCode,BillNo,BillDate,Desc1,Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode,GstRate, CGstAmt, SGstAmt, IGstAmt,RoundOff, NetAmt, ENTRYNO ,YearCode,DeptCode,CompCode,USERID
+    INSERT INTO Billsub (
+      TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, 
+      Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, 
+      RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID
+    )
+    SELECT  
+      '${trDate}',Flag,${AcCode},ItCode,${parseInt(BillNo)},'${BillDate}','${Desc1}','${Desc2}', 
+      MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, 
+      SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID
     FROM BillsubTemp;
 
-    DELETE TETS
-    FROM BillsubTemp AS TETS
+    DELETE FROM BillsubTemp
     WHERE EXISTS (
       SELECT 1 
       FROM Billsub AS TE 
-      WHERE TE.EntryNo = TETS.EntryNo 
-        AND TE.Flag = TETS.Flag
+      WHERE TE.EntryNo = Billsubtemp.EntryNo 
+        AND TE.Flag = Billsubtemp.Flag
+        AND TE.DeptCode = Billsubtemp.DeptCode 
+        AND TE.YearCode = Billsubtemp.YearCode 
+        AND TE.CompCode = Billsubtemp.CompCode 
     );
   `;
+
   sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
@@ -3431,6 +3440,8 @@ app.post('/api/UpdateSavedBillentries', (req, res) => {
     }
   });
 });
+
+
 
 app.post('/api/tranentriesPost', (req, res) => {
   const {
@@ -3724,7 +3735,7 @@ app.get('/api/distinct-sellentries/:flag/:dept/:year/:company', (req, res) => {
   // Validate inputs and handle potential security concerns
 
   const query = `
-    SELECT distinct EntryNo, TrDate, Flag
+    SELECT distinct ENTRYNO, BILLNO, TRDATE, FLAG , CompCode , BILLDATE ,ACCODE,DESC1,DESC2
     FROM Billsub
     WHERE Flag = @flag
       AND DeptCode = @dept
@@ -3861,19 +3872,25 @@ app.post('/api/sellentriesPost', (req, res) => {
 app.post('/api/insertDataAndFlag', (req, res) => {
   const entryNo = req.body.entryNo;
   const flag = req.body.flag;
-
+  const DeptCode = req.body.DeptCode;
+  const YearCode = req.body.YearCode;
+  const CompCode = req.body.CompCode;
+  
   const query = `
     DELETE FROM BillsubTemp;
 
-    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode ,YearCode)
-    SELECT flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode , YearCode
+    INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode ,YearCode, USERID ,CompCode)
+    SELECT flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode , YearCode ,USERID ,CompCode
     FROM Billsub
-    WHERE EntryNo = @entryNo AND Flag = @flag;
+    WHERE EntryNo = @entryNo AND Flag = @flag  AND DeptCode = @DeptCode  AND YearCode = @YearCode  AND CompCode = @CompCode;
   `;
 
   const request = new sql.Request();
   request.input('entryNo', sql.Int, entryNo);
   request.input('flag', sql.VarChar(255), flag);
+  request.input('DeptCode', sql.Int, DeptCode);
+  request.input('YearCode', sql.Int, YearCode);
+  request.input('CompCode', sql.Int, CompCode);
 
   request.query(query, (err, result) => {
     if (err) {
