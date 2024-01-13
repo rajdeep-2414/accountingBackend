@@ -3735,13 +3735,14 @@ app.get('/api/distinct-sellentries/:flag/:dept/:year/:company', (req, res) => {
   const company = req.params.company;
   // Validate inputs and handle potential security concerns
 
-  const query = `
-    SELECT distinct ENTRYNO, BILLNO, TRDATE, FLAG , CompCode , BILLDATE ,ACCODE,DESC1,DESC2,COMPUTERID
+
+      const query = `
+    SELECT distinct ENTRYNO, BILLNO, TRDATE,FLAG,CompCode, BILLDATE ,ACCODE,DESC1,DESC2
     FROM Billsub
     WHERE Flag = @flag
       AND DeptCode = @dept
       AND YearCode = @year
-      AND CompCode = @company`; // Adjust the WHERE clause accordingly
+      AND CompCode = @company;`;
 
   const request = new sql.Request();
   request.input('flag', sql.NVarChar, flag);
