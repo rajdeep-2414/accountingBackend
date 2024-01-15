@@ -3225,38 +3225,74 @@
       }
     });
   })
+//old
+  // app.post('/api/Savetranentries', (req, res) => {
+  //   // SQL query to insert data into TranEntry and delete from TranEntryTempSub
+  //   const query = `
+  //     DELETE TE
+  //       FROM TranEntry AS TE
+  //       WHERE EXISTS (
+  //         SELECT 1 
+  //         FROM TranEntryTempSub AS TETS 
+  //         WHERE TETS.EntryNo = TE.EntryNo 
+  //           AND TETS.Flag = TE.Flag
+  //       );
 
-  app.post('/api/Savetranentries', (req, res) => {
+  //     INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID)
+  //     SELECT  EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt , DeptCode, YearCode, CompCode, UserID, COMPUTERID
+  //     FROM TranEntryTempSub;
+
+  //     DELETE TETS
+  //     FROM TranEntryTempSub AS TETS
+  //     WHERE EXISTS (
+  //       SELECT 1 
+  //       FROM TranEntry AS TE 
+  //       WHERE TE.EntryNo = TETS.EntryNo 
+  //         AND TE.Flag = TETS.Flag
+  //     );
+  //   `;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Data saved successfully' });
+  //     }
+  //   });
+  // });
+
+  app.post('/api/Savetranentries', async (req, res) => {
+    const { flag,DeptCode,YearCode,CompCode } = req.body; 
+    // Get the latest max entry number for the given flag
+    const getMaxEntryNoQuery = `
+      SELECT MAX(EntryNo) AS MaxEntryNo
+      FROM TranEntry
+      WHERE Flag = '${flag}'AND DeptCode = '${DeptCode}'AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'`;
+    console.log("getMaxEntryNoQuery",getMaxEntryNoQuery);
+    const maxEntryNoResult = await sql.query(getMaxEntryNoQuery);
+    const maxEntryNo = maxEntryNoResult.recordset[0].MaxEntryNo || 0;
+    console.log("maxEntryNo",maxEntryNo);
+
     // SQL query to insert data into TranEntry and delete from TranEntryTempSub
     const query = `
       DELETE TE
-        FROM TranEntry AS TE
-        WHERE EXISTS (
-          SELECT 1 
-          FROM TranEntryTempSub AS TETS 
-          WHERE TETS.EntryNo = TE.EntryNo 
-            AND TETS.Flag = TE.Flag
-        );
+      FROM TranEntry AS TE
+      WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}' AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode}';
 
-      INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID)
-      SELECT  EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt , DeptCode, YearCode, CompCode, UserID
-      FROM TranEntryTempSub;
+      INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID)
+      SELECT '${maxEntryNo + 1}', TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt , DeptCode, YearCode, CompCode, UserID, COMPUTERID FROM TranEntryTempSub;
 
       DELETE TETS
       FROM TranEntryTempSub AS TETS
-      WHERE EXISTS (
-        SELECT 1 
-        FROM TranEntry AS TE 
-        WHERE TE.EntryNo = TETS.EntryNo 
-          AND TE.Flag = TETS.Flag
-      );
+      WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}'AND TETS.DeptCode = '${DeptCode}' AND TETS.YearCode = '${YearCode}'  AND TETS.CompCode = '${CompCode}';;
     `;
+
     sql.query(query, (err) => {
       if (err) {
         console.log('Error:', err);
         res.status(500).json({ error: 'Internal server error' });
       } else {
-        res.json({ message: 'Data saved successfully' });
+        res.json({ message: 'Data saved and deleted successfully' });
       }
     });
   });
@@ -3375,7 +3411,7 @@
 
       DELETE TETS
       FROM BillsubTemp AS TETS
-      WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}'AND TETS.DeptCode = '${DeptCode}' AND TETS.YearCode = '${YearCode}'  AND TETS.CompCode = '${CompCode}';;
+      WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}'AND TETS.DeptCode = '${DeptCode}' AND TETS.YearCode = '${YearCode}'  AND TETS.CompCode = '${CompCode}';
     `;
 
     sql.query(query, (err) => {
@@ -3451,17 +3487,16 @@
       drAmt,
       chqNo,
       narration1,
-      narration2,
-      narration3,
       DeptCode,
       YearCode,
       CompCode,
       UserID,
-      flag
+      flag,
+      uniqueCode
     } = req.body;
 
     let query = `
-      INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID`;
+      INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID , COMPUTERID`;
 
     // Conditionally add chqNo to the SQL query if it's provided
     if (chqNo) {
@@ -3474,7 +3509,7 @@
     }
 
     query += `)
-      VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGroupCode}', '${subAcCode}', '${crAmt}', '${drAmt}',${DeptCode},${YearCode},${CompCode},${UserID}`;
+      VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGroupCode}', '${subAcCode}', '${crAmt}', '${drAmt}',${DeptCode},${YearCode},${CompCode},${UserID},${uniqueCode}`;
 
     // Conditionally add the values for chqNo and narration1
     if (chqNo) {
@@ -3497,64 +3532,8 @@
     });
   });
 
-
-  // app.post('/api/tranentriesPost', (req, res) => {
-  //   const {
-  //     entryNo,
-  //     trDate,
-  //     acCode,
-  //     subLedgerGroupCode,
-  //     subAcCode,
-  //     crAmt,
-  //     drAmt,
-  //     chqNo,
-  //     narration1,
-  //     narration2,
-  //     narration3,
-  //     flag
-  //   } = req.body;
-
-  //   let query = `
-  //     INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt)`;
-
-  //   // Conditionally add chqNo to the SQL query if it's provided
-  //   if (chqNo) {
-  //     query += ', ChqNo';
-  //   }
-
-  //   // Conditionally add narration1 to the SQL query if it's provided
-  //   if (narration1) {
-  //     query += ', Narration1';
-  //   }
-
-  //   query += `)
-  //     VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGroupCode}', '${subAcCode}', '${crAmt}', '${drAmt}'`;
-
-  //   // Conditionally add the values for chqNo and narration1
-  //   if (chqNo) {
-  //     query += `, '${chqNo}'`;
-  //   }
-
-  //   if (narration1) {
-  //     query += `, '${narration1}'`;
-  //   }
-
-  //   query += ');';
-
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       res.json({ message: 'Data saved successfully' });
-  //     }
-  //   });
-  // });
-
-
-  // PUT (update) a TranEntry by ID
-  app.put('/api/tranentries/:entryNo', (req, res) => {
-    const { entryNo } = req.params;
+  app.put('/api/tranentries/:uniqueCode', (req, res) => {
+    const { uniqueCode } = req.params;
     const {
       TrDate,
       Flag,
@@ -3575,7 +3554,7 @@
     const query = `
       UPDATE TranEntry
       SET TrDate='${TrDate}', Flag='${Flag}', AcCode='${AcCode}', SubLedgerGroupCode='${SubLedgerGroupCode}', SubAcCode='${SubAcCode}', CrAmt='${CrAmt}', DrAmt='${DrAmt}', ChqNo='${ChqNo}', Narration1=N'${Narration1}', Narration2=N'${Narration2}', Narration3=N'${Narration3}',
-      DeptCode=${DeptCode},YearCode=${YearCode} ,CompCode=${CompCode} ,UserID=${UserID} WHERE EntryNo='${entryNo}';
+      DeptCode=${DeptCode},YearCode=${YearCode} ,CompCode=${CompCode} ,UserID=${UserID} WHERE COMPUTERID='${uniqueCode}';
     `;
     sql.query(query, (err, result) => {
       if (err) {
@@ -3606,8 +3585,8 @@
   });
 
 
-  app.put('/api/Newtranentries/:ID', (req, res) => {
-    const { ID } = req.params;
+  app.put('/api/Newtranentries/:uniqueCode', (req, res) => {
+    const { uniqueCode } = req.params;
     const {
       entryNo,
       trDate,
@@ -3624,7 +3603,7 @@
     } = req.body;
 
     // Check if the ID exists in TranEntry
-    const queryCheckTranEntry = `SELECT COUNT(*) AS count FROM TranEntry WHERE ID=${ID}`;
+    const queryCheckTranEntry = `SELECT COUNT(*) AS count FROM TranEntry WHERE COMPUTERID=${uniqueCode}`;
     sql.query(queryCheckTranEntry, (err, resultCheckTranEntry) => {
       if (err) {
         console.log('Error checking TranEntry:', err);
@@ -3638,12 +3617,12 @@
         // ID exists in TranEntry, update TranEntry
         updateQuery = `
           UPDATE TranEntry
-          SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
+          SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE COMPUTERID=${uniqueCode};`;
       } else {
         // ID exists in TranEntryTempSub, update TranEntryTempSub
         updateQuery = `
           UPDATE TranEntryTempSub
-          SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE ID=${ID};`;
+          SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE COMPUTERID=${uniqueCode};`;
       }
       // Execute the update query
       sql.query(updateQuery, (err, result) => {
@@ -3671,7 +3650,7 @@
             narration3,
           });
         } else {
-          return res.status(404).json({ error: 'Record not found for the specified ID', ID });
+          return res.status(404).json({ error: 'Record not found for the specified ID', uniqueCode });
         }
       });
     });
@@ -3708,9 +3687,9 @@
   });
 
 
-  app.delete('/api/Newtranentries/:Id', (req, res) => {
-    const { Id } = req.params;
-    const query = `DELETE FROM TranEntryTempSub WHERE Id=${Id}`;
+  app.delete('/api/Newtranentries/:uniqueCode', (req, res) => {
+    const { uniqueCode } = req.params;
+    const query = `DELETE FROM TranEntryTempSub WHERE COMPUTERID=${uniqueCode}`;
     console.log("print",Id);
     sql.query(query, (err) => {
       if (err) {
