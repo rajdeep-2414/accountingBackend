@@ -37,6 +37,8 @@
   const sql = require('mssql');
   const axios = require('axios');
   const bcrypt = require('bcrypt');
+  const path = require('path');
+  const multer = require('multer');
 
 
   const app = express();
@@ -71,6 +73,102 @@
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
+
+  ///im upload
+
+ const storage = multer.diskStorage({
+   destination: (req, file, cb) => {
+      const destinationPath = path.join('C:/Users/91942/Pictures/photopath');
+      cb(null, destinationPath);
+   },
+   filename: (req, file, cb) => {
+      cb(null, file.originalname);
+   },
+});
+
+const upload = multer({ storage });
+
+// Serve static files from the photopath directory
+app.use('/images', express.static('C:/Users/91942/Pictures/photopath'));
+
+app.get('/api/employee', async (req, res) => {
+  try {
+      // Assuming you have a database connection
+      const pool = await sql.connect(config);
+
+      // Fetch data from EmployeeMaster table
+      const result = await pool.request().query('SELECT * FROM EmployeeMaster');
+
+      res.send(result.recordset);
+  } catch (error) {
+      console.error('Error fetching employee data:', error);
+      res.status(500).send({ error: 'Error fetching employee data' });
+  }
+});
+
+
+// Handle file upload
+app.post('/upload', upload.single('image'), async (req, res) => {
+  try {
+      // Assuming you have a database connection
+      // Save the path to the image in your database (if needed)
+      const imagePath = path.join('images', req.file.filename); // Update the path
+
+      // Add console log for success
+      console.log('Image uploaded successfully! Path:', imagePath);
+
+      res.send({ imagePath });
+  } catch (error) {
+      console.error('Error uploading image:', error);
+      res.status(500).send({ error: 'Error uploading image' });
+  }
+});
+
+app.post('/upload1', upload.single('image'), async (req, res) => {
+  try {
+      // Assuming you have a database connection
+      // Save the path to the image in your database (if needed)
+
+      const imagePath = path.join('images', req.file.filename); // Update the path
+
+      // Add console log for success
+      console.log('Image uploaded successfully! Path:', imagePath);
+
+      res.send({ imagePath });
+  } catch (error) {
+      console.error('Error uploading image:', error);
+      res.status(500).send({ error: 'Error uploading image' });
+  }
+});
+
+
+app.post('/api/employee', async (req, res) => {
+  try {
+      const {
+          EmpCode,
+          PhotoPath,
+          SignPath,
+          USERID,
+      } = req.body;
+
+      // Assuming you have a database connection
+      const pool = await sql.connect(config);
+
+      // Insert data into EmployeeMaster table
+      const result = await pool.request()
+          .input('EmpCode', sql.VarChar, EmpCode)
+          .input('PhotoPath', sql.VarChar, PhotoPath)
+          .input('SignPath', sql.VarChar, SignPath)
+          .input('USERID', sql.Int, USERID)
+          .query('INSERT INTO EmployeeMaster (EmpCode, PhotoPath, SignPath, USERID) VALUES (@EmpCode, @PhotoPath, @SignPath, @USERID)');
+
+      res.send({ success: true, message: 'Employee added successfully!' });
+  } catch (error) {
+      console.error('Error adding employee:', error);
+      res.status(500).send({ success: false, message: 'Error adding employee' });
+  }
+});
+
 
 
   //create admin 
@@ -3361,7 +3459,7 @@
   // });
 
   app.post('/api/SaveBillentries', async (req, res) => {
-    const { flag,DeptCode,YearCode,CompCode } = req.body; 
+    const { flag,DeptCode,YearCode,CompCode,trDate, AcCode, BillNo, BillDate, Desc1, Desc2,operation, entryNo} = req.body; 
     // Get the latest max entry number for the given flag
     const getMaxEntryNoQuery = `
       SELECT MAX(ENTRYNO) AS MaxEntryNo
@@ -3373,46 +3471,114 @@
     console.log("maxEntryNo",maxEntryNo);
 
     // SQL query to insert data into TranEntry and delete from TranEntryTempSub
-    const query = `
+    let  query = `
       DELETE TE
       FROM Billsub AS TE
-      WHERE TE.EntryNo = '${maxEntryNo + 1}' AND TE.Flag = '${flag}' AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode}';
+      WHERE TE.EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND TE.Flag = '${flag}' AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode}';
 
       INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID, COMPUTERID)
       SELECT  
-        TRDATE, 
-        Flag,
-        AcCode, 
-        ItCode,
-        BillNo,
-        BillDate,
-        Desc1,
-        Desc2,
-        MRP,
-        Qty,
-        Rate,
-        Amount,
-        DiscAmt,
-        TaxableAmt,
-        GstRateCode,
-        GstRate,
-        CGstAmt,
-        SGstAmt,
-        IGstAmt,
-        RoundOff,
-        NetAmt,
-        '${maxEntryNo + 1}', 
-        YearCode,
-        DeptCode,
-        CompCode,
-        USERID,
-        COMPUTERID
+      '${trDate}',Flag,${AcCode},ItCode,'${BillNo}','${BillDate}','${Desc1}','${Desc2}', MRP,Qty,Rate,Amount,DiscAmt,TaxableAmt,GstRateCode,GstRate,CGstAmt,SGstAmt,IGstAmt,RoundOff,
+       NetAmt,'${operation === 'update' ? entryNo : maxEntryNo + 1}', YearCode,DeptCode,CompCode,USERID,COMPUTERID
       FROM BillsubTemp;
 
       DELETE TETS
       FROM BillsubTemp AS TETS
-      WHERE TETS.EntryNo = '${maxEntryNo + 1}' AND TETS.Flag = '${flag}'AND TETS.DeptCode = '${DeptCode}' AND TETS.YearCode = '${YearCode}'  AND TETS.CompCode = '${CompCode}';
+      WHERE TETS.EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND TETS.Flag = '${flag}'AND TETS.DeptCode = '${DeptCode}' AND TETS.YearCode = '${YearCode}'  AND TETS.CompCode = '${CompCode}';
+      
+      delete from billentry where EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}'  AND CompCode = '${CompCode}';
+        INSERT INTO BillEntry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, billno, billdate, TaxableAmt, CgstAmt, SgstAmt, IgstAmt, RoundOff, NetAmt)
+        SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, billno, billdate, SUM(TaxableAmt) AS TaxableAmt, SUM(CgstAmt) AS CgstAmt, SUM(SgstAmt) AS SgstAmt, SUM(IgstAmt) AS IgstAmt, AVG(RoundOff) AS RoundOff, round(SUM(NetAmt),0) AS NetAmt
+        FROM BillSub
+        WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}'  AND CompCode = '${CompCode}'
+        GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, billno, billdate;`
+      if (flag === 'S'|| flag === 'PR' ) {
+      // Additional code to run when flag is 'P' or 'S'
+      query += `
+      DELETE FROM Tranentry 
+      WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
+
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
+      SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, round(SUM(NetAmt),0) AS Amt
+      FROM BillSub
+      WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+      GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
+      SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 4, 0, SUM(TaxableAmt) AS Amt
+      FROM BillSub
+      WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+      GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
+      SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 7, 0, SUM(CgstAmt) AS Amt
+      FROM BillSub
+      WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+      GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
+      SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 8, 0, SUM(SgstAmt) AS Amt
+      FROM BillSub
+      WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+      GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
+      SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 9, 0, SUM(IgstAmt) AS Amt
+      FROM BillSub
+      WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+      GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
+      SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 12, 0, AVG(RoundOff) AS Amt
+      FROM BillSub
+      WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+      GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+
+      `;
+      }
+    if (flag === 'P' || flag === 'SR' ) {
+    // Additional code to run when flag is 'P' or 'S'
+    query += `
+    DELETE FROM Tranentry 
+    WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
+    
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
+    SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, round(SUM(NetAmt),0) AS Amt
+    FROM BillSub
+    WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+    GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+    
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
+    SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 3, 0, SUM(TaxableAmt) AS Amt
+    FROM BillSub
+    WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+    GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+    
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
+    SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 7, 0, SUM(CgstAmt) AS Amt
+    FROM BillSub
+    WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+    GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+    
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
+    SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 8, 0, SUM(SgstAmt) AS Amt
+    FROM BillSub
+    WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+    GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+    
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
+    SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 9, 0, SUM(IgstAmt) AS Amt
+    FROM BillSub
+    WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+    GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
+    
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
+    SELECT CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, 12, 0, AVG(RoundOff) AS Amt
+    FROM BillSub
+    WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'
+    GROUP BY CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode;
     `;
+    }     
 
     sql.query(query, (err) => {
       if (err) {
@@ -3424,56 +3590,52 @@
     });
   });
 
+  // app.post('/api/UpdateSavedBillentries', (req, res) => {
+  //   const { trDate, AcCode, BillNo, BillDate, Desc1, Desc2 } = req.body;
+  //   const query = `
+  //     DELETE FROM Billsub
+  //     WHERE EXISTS (
+  //       SELECT 1 
+  //       FROM BillsubTemp AS TETS 
+  //       WHERE TETS.EntryNo = Billsub.EntryNo 
+  //         AND TETS.Flag = Billsub.Flag
+  //         AND TETS.DeptCode = Billsub.DeptCode 
+  //         AND TETS.YearCode = Billsub.YearCode 
+  //         AND TETS.CompCode = Billsub.CompCode 
+  //     );
 
+  //     INSERT INTO Billsub (
+  //       TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, 
+  //       Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, 
+  //       RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID, COMPUTERID
+  //     )
+  //     SELECT  
+  //       '${trDate}',Flag,${AcCode},ItCode,'${BillNo}','${BillDate}','${Desc1}','${Desc2}', 
+  //       MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, 
+  //       SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID , COMPUTERID
+  //     FROM BillsubTemp;
 
+  //     DELETE FROM BillsubTemp
+  //     WHERE EXISTS (
+  //       SELECT 1 
+  //       FROM Billsub AS TE 
+  //       WHERE TE.EntryNo = Billsubtemp.EntryNo 
+  //         AND TE.Flag = Billsubtemp.Flag
+  //         AND TE.DeptCode = Billsubtemp.DeptCode 
+  //         AND TE.YearCode = Billsubtemp.YearCode 
+  //         AND TE.CompCode = Billsubtemp.CompCode 
+  //     );
+  //   `;
 
-  app.post('/api/UpdateSavedBillentries', (req, res) => {
-    const { trDate, AcCode, BillNo, BillDate, Desc1, Desc2 } = req.body;
-    const query = `
-      DELETE FROM Billsub
-      WHERE EXISTS (
-        SELECT 1 
-        FROM BillsubTemp AS TETS 
-        WHERE TETS.EntryNo = Billsub.EntryNo 
-          AND TETS.Flag = Billsub.Flag
-          AND TETS.DeptCode = Billsub.DeptCode 
-          AND TETS.YearCode = Billsub.YearCode 
-          AND TETS.CompCode = Billsub.CompCode 
-      );
-
-      INSERT INTO Billsub (
-        TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, 
-        Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, 
-        RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID, COMPUTERID
-      )
-      SELECT  
-        '${trDate}',Flag,${AcCode},ItCode,'${BillNo}','${BillDate}','${Desc1}','${Desc2}', 
-        MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, 
-        SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID , COMPUTERID
-      FROM BillsubTemp;
-
-      DELETE FROM BillsubTemp
-      WHERE EXISTS (
-        SELECT 1 
-        FROM Billsub AS TE 
-        WHERE TE.EntryNo = Billsubtemp.EntryNo 
-          AND TE.Flag = Billsubtemp.Flag
-          AND TE.DeptCode = Billsubtemp.DeptCode 
-          AND TE.YearCode = Billsubtemp.YearCode 
-          AND TE.CompCode = Billsubtemp.CompCode 
-      );
-    `;
-
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Data saved successfully' });
-      }
-    });
-  });
-
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Data saved successfully' });
+  //     }
+  //   });
+  // });
 
 
   app.post('/api/tranentriesPost', (req, res) => {
