@@ -4683,12 +4683,12 @@
   const app = express();
   app.use(bodyParser.json());
 
-  // const corsOptions = {
-  //   origin: 'https://webgap.netlify.app/',
-  //   optionsSuccessStatus: 200,
-  // };
+  const corsOptions = {
+    origin: 'https://webgap.netlify.app',
+    optionsSuccessStatus: 200,
+  };
 
-  app.use(cors());
+  app.use(cors(corsOptions));
 
 
   // Database configuration
@@ -4723,7 +4723,7 @@
 
  const storage = multer.diskStorage({
    destination: (req, file, cb) => {
-      const destinationPath = path.join('C:/Users/91942/Pictures/photopath');
+      const destinationPath = path.join('C:/Users/Administrator/Desktop/photoPath');
       cb(null, destinationPath);
    },
    filename: (req, file, cb) => {
@@ -4734,7 +4734,7 @@
 const upload = multer({ storage });
 
 // Serve static files from the photopath directory
-const photoPath = path.join(__dirname, 'C:/Users/91942/Pictures/photopath');
+const photoPath = path.join(__dirname, 'C:/Users/Administrator/Desktop/photoPath');
 app.use('/images', express.static(photoPath));
 // app.use('/images', express.static('C:/Users/91942/Pictures/photopath'));
 
