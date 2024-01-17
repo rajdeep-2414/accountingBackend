@@ -4684,7 +4684,7 @@
   app.use(bodyParser.json());
 
   const corsOptions = {
-    origin: 'http://localhost:3000/EmployeeMaster',
+    origin: 'https://webgap.netlify.app/',
     optionsSuccessStatus: 200,
   };
 
