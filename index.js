@@ -89,7 +89,14 @@
 const upload = multer({ storage });
 
 // Serve static files from the photopath directory
-app.use('/images', express.static('C:/Users/91942/Pictures/photopath'));
+// app.use('/images', express.static('C:/Users/91942/Pictures/photopath'));
+
+// Determine the base URL based on the environment
+const baseURL = process.env.NODE_ENV === 'production' ? 'https://webgapbackend.onrender.com' : 'http://localhost:8090';
+
+// Serve static files from the photopath directory
+app.use('/images', express.static(path.join(__dirname, 'C:/Users/91942/Pictures/photopath')));
+
 
 app.get('/api/employee', async (req, res) => {
   try {
