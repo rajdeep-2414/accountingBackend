@@ -4759,7 +4759,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   try {
       // Assuming you have a database connection
       // Save the path to the image in your database (if needed)
-      const imagePath = path.join('`/images', req.file.filename); // Update the path
+      const imagePath = path.join('`images', req.file.filename); // Update the path
 
       // Add console log for success
       console.log('Image uploaded successfully! Path:', imagePath);
