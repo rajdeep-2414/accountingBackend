@@ -78,7 +78,7 @@
 
  const storage = multer.diskStorage({
    destination: (req, file, cb) => {
-      const destinationPath = path.join('C:/Users/91942/Pictures/photopath');
+      const destinationPath = path.join('D:\ReAct\WebGap\photopath');
       cb(null, destinationPath);
    },
    filename: (req, file, cb) => {
@@ -89,13 +89,13 @@
 const upload = multer({ storage });
 
 // Serve static files from the photopath directory
-// app.use('/images', express.static('C:/Users/91942/Pictures/photopath'));
+// app.use('/images', express.static('D:\ReAct\WebGap\photopath'));
 
 // Determine the base URL based on the environment
 const baseURL = process.env.NODE_ENV === 'production' ? 'https://webgapbackend.onrender.com' : 'http://localhost:8090';
 
 // Serve static files from the photopath directory
-app.use('/images', express.static(path.join(__dirname, 'C:/Users/91942/Pictures/photopath')));
+app.use('/images', express.static(path.join(__dirname, 'D:\ReAct\WebGap\photopath')));
 
 
 app.get('/api/employee', async (req, res) => {
