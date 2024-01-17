@@ -4683,12 +4683,12 @@
   const app = express();
   app.use(bodyParser.json());
 
-  const corsOptions = {
-    origin: 'https://webgap.netlify.app',
-    optionsSuccessStatus: 200,
-  };
+  // const corsOptions = {
+  //   origin: 'https://webgap.netlify.app',
+  //   optionsSuccessStatus: 200,
+  // };
 
-  app.use(cors(corsOptions));
+  app.use(cors());
 
 
   // Database configuration
