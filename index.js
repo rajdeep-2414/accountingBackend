@@ -3733,7 +3733,7 @@ app.post('/api/employee', async (req, res) => {
       WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
 
       INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
-      VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}', '${AcCode}',15,'${TotNetAmt}');
+      VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}', 15,'${AcCode}','${TotNetAmt}');
 
 
       INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
@@ -3763,7 +3763,7 @@ app.post('/api/employee', async (req, res) => {
     WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
     
     INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
-    VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}', '${AcCode}', 16,'${TotNetAmt}');
+    VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}',  16,'${AcCode}','${TotNetAmt}');
 
     
     INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
