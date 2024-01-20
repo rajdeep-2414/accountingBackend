@@ -86,88 +86,88 @@
    },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage : storage });
 
 // Serve static files from the photopath directory
-app.use('/images', express.static('C:/Users/91942/Pictures/photopath'));
+app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
 
-app.get('/api/employee', async (req, res) => {
-  try {
-      // Assuming you have a database connection
-      const pool = await sql.connect(config);
+// app.get('/api/employee', async (req, res) => {
+//   try {
+//       // Assuming you have a database connection
+//       const pool = await sql.connect(config);
 
-      // Fetch data from EmployeeMaster table
-      const result = await pool.request().query('SELECT * FROM EmployeeMaster');
+//       // Fetch data from EmployeeMaster table
+//       const result = await pool.request().query('SELECT * FROM EmployeeMaster');
 
-      res.send(result.recordset);
-  } catch (error) {
-      console.error('Error fetching employee data:', error);
-      res.status(500).send({ error: 'Error fetching employee data' });
-  }
-});
-
-
-// Handle file upload
-app.post('/upload', upload.single('image'), async (req, res) => {
-  try {
-      // Assuming you have a database connection
-      // Save the path to the image in your database (if needed)
-      const imagePath = path.join('images', req.file.filename); // Update the path
-
-      // Add console log for success
-      console.log('Image uploaded successfully! Path:', imagePath);
-
-      res.send({ imagePath });
-  } catch (error) {
-      console.error('Error uploading image:', error);
-      res.status(500).send({ error: 'Error uploading image' });
-  }
-});
-
-app.post('/upload1', upload.single('image'), async (req, res) => {
-  try {
-      // Assuming you have a database connection
-      // Save the path to the image in your database (if needed)
-
-      const imagePath = path.join('images', req.file.filename); // Update the path
-
-      // Add console log for success
-      console.log('Image uploaded successfully! Path:', imagePath);
-
-      res.send({ imagePath });
-  } catch (error) {
-      console.error('Error uploading image:', error);
-      res.status(500).send({ error: 'Error uploading image' });
-  }
-});
+//       res.send(result.recordset);
+//   } catch (error) {
+//       console.error('Error fetching employee data:', error);
+//       res.status(500).send({ error: 'Error fetching employee data' });
+//   }
+// });
 
 
-app.post('/api/employee', async (req, res) => {
-  try {
-      const {
-          EmpCode,
-          PhotoPath,
-          SignPath,
-          USERID,
-      } = req.body;
+// // Handle file upload
+// app.post('/upload', upload.single('image'), async (req, res) => {
+//   try {
+//       // Assuming you have a database connection
+//       // Save the path to the image in your database (if needed)
+//       const imagePath = path.join('images', req.file.filename); // Update the path
 
-      // Assuming you have a database connection
-      const pool = await sql.connect(config);
+//       // Add console log for success
+//       console.log('Image uploaded successfully! Path:', imagePath);
 
-      // Insert data into EmployeeMaster table
-      const result = await pool.request()
-          .input('EmpCode', sql.VarChar, EmpCode)
-          .input('PhotoPath', sql.VarChar, PhotoPath)
-          .input('SignPath', sql.VarChar, SignPath)
-          .input('USERID', sql.Int, USERID)
-          .query('INSERT INTO EmployeeMaster (EmpCode, PhotoPath, SignPath, USERID) VALUES (@EmpCode, @PhotoPath, @SignPath, @USERID)');
+//       res.send({ imagePath });
+//   } catch (error) {
+//       console.error('Error uploading image:', error);
+//       res.status(500).send({ error: 'Error uploading image' });
+//   }
+// });
 
-      res.send({ success: true, message: 'Employee added successfully!' });
-  } catch (error) {
-      console.error('Error adding employee:', error);
-      res.status(500).send({ success: false, message: 'Error adding employee' });
-  }
-});
+// app.post('/upload1', upload.single('image'), async (req, res) => {
+//   try {
+//       // Assuming you have a database connection
+//       // Save the path to the image in your database (if needed)
+
+//       const imagePath = path.join('images', req.file.filename); // Update the path
+
+//       // Add console log for success
+//       console.log('Image uploaded successfully! Path:', imagePath);
+
+//       res.send({ imagePath });
+//   } catch (error) {
+//       console.error('Error uploading image:', error);
+//       res.status(500).send({ error: 'Error uploading image' });
+//   }
+// });
+
+
+// app.post('/api/employee', async (req, res) => {
+//   try {
+//       const {
+//           EmpCode,
+//           PhotoPath,
+//           SignPath,
+//           USERID,
+//       } = req.body;
+
+//       // Assuming you have a database connection
+//       const pool = await sql.connect(config);
+
+//       // Insert data into EmployeeMaster table
+//       const result = await pool.request()
+//           .input('EmpCode', sql.VarChar, EmpCode)
+//           .input('PhotoPath', sql.VarChar, PhotoPath)
+//           .input('SignPath', sql.VarChar, SignPath)
+//           .input('USERID', sql.Int, USERID)
+//           .query('INSERT INTO EmployeeMaster (EmpCode, PhotoPath, SignPath, USERID) VALUES (@EmpCode, @PhotoPath, @SignPath, @USERID)');
+
+//       res.send({ success: true, message: 'Employee added successfully!' });
+//   } catch (error) {
+//       console.error('Error adding employee:', error);
+//       res.status(500).send({ success: false, message: 'Error adding employee' });
+//   }
+// });
 
 
 
@@ -4321,4 +4321,1102 @@ app.post('/api/employee', async (req, res) => {
       }
     });
   });
+
+  app.get('/api/ViewTranEntries', (req, res) => {
+    const {ledgerCode, endDate} = req.query;
+    const query = `select * from viewTranentries where Accode = @Accode and Trdate < @Trdate;`;
+  
+    const request = new sql.Request();
+    request.input('Accode', sql.Int, ledgerCode);
+    request.input('Trdate', sql.NVarChar, endDate);
+  
+    request.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+
+  app.get('/api/viewBillRegister', (req, res) => {
+    const {ledgerCode, endDate} = req.query;
+    const query = `select * from viewBillRegister where Trdate < @Trdate AND Flag IN ('S', 'P');`;
+  
+    const request = new sql.Request();
+    request.input('Accode', sql.Int, ledgerCode);
+    request.input('Trdate', sql.NVarChar, endDate);
+  
+    request.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+
+   // For EmployeeMaster------------------------------------------------------------------------------------
+   app.get('/api/employee', (req, res) => {
+    const query = 'SELECT * FROM EmployeeMaster';
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+  
+  
+  // API endpoint for uploading images
+  /* app.post('/api/upload', upload.single('file'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+  
+    const filePath = req.file.path;
+    res.json({ success: true, filePath });
+  });
+  
+  // API endpoint for fetching images
+  app.get('/api/view/:filename', (req, res) => {
+    const filename = req.params.filename;
+    res.sendFile(path.join(__dirname, 'D:\\Images', filename));
+  }); */
+  
+  /* app.post('/api/employee/upload', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'sign', maxCount: 1 }]), async (req, res) => {
+    try {
+      const photoPath = req.files['photo'][0].filename;
+      const signPath = req.files['sign'][0].filename;
+  
+      res.json({ Status: 'Success', PhotoPath: photoPath, SignPath: signPath });
+    } catch (error) {
+      console.log('Error uploading image:', error);
+      res.status(500).json({ Status: 'Failed' });
+    }
+  
+  }); */
+  
+  /* app.post('/api/employee/upload', upload.fields([{ name: 'photo', maxCount: 10 }, { name: 'sign', maxCount: 10 }]), async (req, res) => {
+    try {
+      if (!req.files || !req.files['photo'] || !req.files['sign']) {
+        console.log('Error: Files not provided.');
+        res.status(400).json({ Status: 'Failed', message: 'Files not provided' });
+        return;
+      }
+      const photoPath = req.files['photo'][0].filename;
+      const signPath = req.files['sign'][0].filename;
+      console.log("Photopath : ",req.files['photo'][0].filename);
+  
+      if (photoPath && signPath) {
+        res.json({ Status: 'Success', Photo: photoPath, Sign: signPath });
+      } else {
+        console.log('Error: Photo or Sign path is undefined.');
+        res.status(500).json({ Status: 'Failed', message: 'Photo or Sign path is undefined' });
+      }
+    } catch (error) {
+      console.log('Error uploading image:', error);
+      res.status(500).json({ Status: 'Failed' });
+    }
+  }); */
+  
+  /* app.post('/api/employee/upload', upload.single('image'), async (req, res) => {
+    try {
+      const photoPath = req.file.filename;
+  
+      console.log("photopath : ", photoPath);
+  
+      if (photoPath) {
+        res.json({ Status: 'Success', Photo: photoPath });
+      } else {
+        console.log('Error: Photo or Sign path is undefined.');
+        res.status(500).json({ Status: 'Failed', message: 'Photo or Sign path is undefined' });
+      }
+    } catch (error) {
+      console.log('Error uploading image:', error);
+      res.status(500).json({ Status: 'Failed' });
+    }
+  }); */
+  
+  /* app.post('/api/employee/aadharupload' ,upload.single('image') ,(req, res) => {
+    const { EmpCode } = req.body;
+    const image = req.file.filename;
+    console.log("Image Name : ",image);
+  
+    const query = `INSERT INTO EmployeeMaster (EmpCode, AadharPath) VALUES ('${EmpCode}','${image}')`;
+    
+    sql.query(query, (err, result) => {
+        if(err) return res.json({Message : "Error"});
+        return res.json({Status : "Success"});
+    })
+    console.log(req.file);
+  });
+  
+  app.get('/api/employee/getImage/:EmpCode', (req, res) => {
+    const empCode = req.params.EmpCode;
+  
+    const query = `SELECT AadharPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.error('Error fetching image:', err);
+        return res.status(500).json({ Message: 'Error fetching image' });
+      }
+  
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+      }
+  
+      const imagePath = path.join('D:\\Image', result.recordset[0].AadharPath); // Corrected path
+      res.sendFile(imagePath);
+    });
+  });
+   */
+  
+  
+  /*2 app.post('/upload/:EmpCode', upload.single('image'), (req, res) => {
+    const image = req.file.filename;
+    const empCode = req.params.EmpCode;
+    
+    // Determine if it's Aadhar card or PAN card based on the request path
+    const isAadharUpload = req.path.includes('AadharPath');
+    
+    const columnName = isAadharUpload ? 'AadharPath' : 'PanPath';
+    
+    const query = `
+    INSERT INTO EmployeeMaster (EmpCode, ${columnName}) 
+    VALUES ('${empCode}', '${image}')
+    ON DUPLICATE KEY UPDATE ${columnName} = '${image}';
+  `;
+    sql.query(query, (err, result) => {
+      if (err) return res.json({ Message: 'Error' });
+      return res.json({ Status: 'Success', filePath: image });
+    });
+  });
+  
+  app.get('/getImage/:EmpCode/:CardType', (req, res) => {
+    const empCode = req.params.EmpCode;
+    const cardType = req.params.CardType; // 'Aadhar' or 'Pan'
+    
+    const columnName = cardType === 'Aadhar' ? 'AadharPath' : 'PanPath';
+    
+    const query = `SELECT ${columnName} FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+    
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.error(`Error fetching ${cardType} image:`, err);
+        return res.status(500).json({ Message: `Error fetching ${cardType} image` });
+      }
+  
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ Message: `${cardType} Image not found for the given EmpCode` });
+      }
+  
+      const imagePath = path.join('D:\\Image', result.recordset[0][columnName]);
+      res.sendFile(imagePath);
+    });
+  }); */
+  
+  /*3 app.post('/upload/:EmpCode', upload.single('image'), async (req, res) => {
+    const image = req.file.filename;
+    const empCode = req.params.EmpCode;
+  
+    // Determine if it's Aadhar card or PAN card based on the request path
+    const isAadharUpload = req.path.includes('AadharPath');
+    console.log("Is Aadhar Upload : ",isAadharUpload);
+    const columnName = isAadharUpload ? 'AadharPath' : 'PanPath';
+    
+    // Check if record already exists
+    const checkQuery = `SELECT '${columnName}' FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+    try {
+      const checkResult = await sql.query(checkQuery);
+  
+      if (checkResult.recordset.length === 0) {
+        // If record doesn't exist, perform INSERT
+        const insertQuery = `INSERT INTO EmployeeMaster (EmpCode, '${columnName}') VALUES ('${empCode}', '${image}')`;
+        await sql.query(insertQuery);
+      } else {
+        // If record exists, perform UPDATE
+        const updateQuery = `UPDATE EmployeeMaster SET '${columnName}' = '${image}' WHERE EmpCode = '${empCode}'`;
+        await sql.query(updateQuery);
+      }
+  
+      return res.json({ Status: 'Success', filePath: image });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return res.status(500).json({ Message: 'Error uploading image' });
+    }
+  });
+  
+  app.get('/getImage/:EmpCode/:CardType', async (req, res) => {
+    const empCode = req.params.EmpCode;
+    const cardType = req.params.CardType; // 'Aadhar' or 'Pan'
+  
+    const columnName = cardType === 'Aadhar' ? 'AadharPath' : 'PanPath';
+  
+    const query = `SELECT '${columnName}' FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+    try {
+      const result = await sql.query(query);
+  
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ Message: `${cardType} Image not found for the given EmpCode` });
+      }
+  
+      const imagePath = path.join('D:\\Image', result.recordset[0][columnName]);
+      return res.sendFile(imagePath);
+    } catch (error) {
+      console.error(`Error fetching ${cardType} image:`, error);
+      return res.status(500).json({ Message: `Error fetching ${cardType} image` });
+    }
+  }); */
+  
+  //Aadhar Upload
+  app.post('/uploadAadhar' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("AadharCard Name : ",image);
+    return res.json({Status: "Success", AadharCard: image});
+  
+  /*   const empCode = req.params.EmpCode;
+  /*   const query = `INSERT INTO EmployeeMaster (EmpCode, AadharPath) VALUES ('${empCode}', '${image}')`;*/  
+    // const query = `MERGE INTO EmployeeMaster AS target
+    // USING (VALUES ('${empCode}', '${image}')) AS source(EmpCode, AadharPath)
+    // ON target.EmpCode = source.EmpCode
+    // WHEN MATCHED THEN
+    //   UPDATE SET target.AadharPath = source.AadharPath
+    // WHEN NOT MATCHED THEN
+    //   INSERT (EmpCode, AadharPath) VALUES (source.EmpCode, source.AadharPath);
+    // `;
+  
+    // sql.query(query, (err, result) => {
+    //     if(err) return res.json({Message : "Error"});
+    //     return res.json({Status : "Success"});
+    // }) 
+  }); 
+  
+  /* app.get('/getImage/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT AadharPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].AadharPath); // Corrected path
+    res.sendFile(imagePath);
+  });
+  }); */
+  
+  //Pan Upload
+  app.post('/uploadPan' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Pan Name : ",image);
+    return res.json({Status: "Success", PanCard: image});
+  }); 
+  
+  /* app.get('/getPanImage/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT PanPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].PanPath); // Corrected path
+    res.sendFile(imagePath);
+  });
+  }); */
+  
+  //RationCard Upload 
+  app.post('/uploadRC' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("RationCard Name : ",image);
+    return res.json({Status: "Success", RationCard: image}); 
+  }); 
+  
+  /* app.get('/getRCImage/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT RationCardPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].RationCardPath); // Corrected path
+    res.sendFile(imagePath);
+  });
+  }); */
+  
+  //License Upload 
+  app.post('/uploadLicense' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("License Name : ",image);
+    return res.json({Status: "Success", License: image}); 
+  }); 
+  
+  /* app.get('/getLicenseImage/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT LicensePath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].LicensePath); // Corrected path
+    res.sendFile(imagePath);
+  });
+  }); */
+  
+  //BirthCertificate Upload 
+  app.post('/uploadBirth' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Birth Name : ",image);
+    return res.json({Status: "Success", Birth: image});
+  }); 
+  
+  /* app.get('/getBirthImage/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT BirthCertificatePath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].BirthCertificatePath); // Corrected path
+    res.sendFile(imagePath);
+  });
+  }); */
+  
+  //PolicePatil Upload 
+  app.post('/uploadPolice' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("PolicePatil Name : ",image);
+    return res.json({Status: "Success", PolicePatil: image});
+  }); 
+  
+  /* app.get('/getPoliceImage/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT PolicePatilPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].PolicePatilPath); // Corrected path
+    res.sendFile(imagePath);
+  });
+  }); */
+  
+  //Agreement Upload 
+  app.post('/uploadAgreement' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Agreement Name : ",image);
+    return res.json({Status: "Success", Agreement: image});
+  }); 
+  
+  /* app.get('/getAgreementImage/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT AgreementPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].AgreementPath); // Corrected path
+    res.sendFile(imagePath);
+  });
+  }); */
+  
+  app.post('/api/employee', async (req, res) => {
+    const {
+      EmpCode,
+      KYCCode,
+      EmpName,
+      EmpNameEng,
+      AddressCurrent,
+      AddressPermanant,
+      City,
+      Phone,
+      MobileNo,
+      Email,
+      AadharNo,
+      PanNo,
+      RationCardNo,
+      PFNo,
+      PensionYears,
+      BankAcNo,
+      BankName,
+      BankIFSC,
+      Gender,
+      MaritalStatus,
+      DateOfEmployment,
+      DateOfBirth,
+      DateOfRetirement,
+      Age,
+      EmpTypeCode,
+      DesigCode,
+      QualificationCode,
+      CasteCode,
+      CompCode,
+      DeptCode,
+      GangCode,
+      StatusCode,
+      MemberCode1,
+      MemberCode2,
+      MemberCode3,
+      PhotoPath,
+      SignPath,
+      AadharPath,
+      PanPath,
+      RationCardPath,
+      LicensePath,
+      BirthCertificatePath,
+      PolicePatilPath,
+      AgreementPath,
+      Doc1Path,
+      Doc2Path,
+      Doc3Path,
+      FamilyMembers,
+      Remark1,
+      Remark2,
+      Remark3,
+      CHECKEDBY,
+      USERID,
+    } = req.body;
+  
+    const query = `
+    INSERT INTO EmployeeMaster (
+      EmpCode,
+      KYCCode,
+      EmpName,
+      EmpNameEng,
+      AddressCurrent,
+      AddressPermanant,
+      City,
+      Phone,
+      MobileNo,
+      Email,
+      AadharNo,
+      PanNo,
+      RationCardNo,
+      PFNo,
+      PensionYears,
+      BankAcNo,
+      BankName,
+      BankIFSC,
+      Gender,
+      MaritalStatus,
+      DateOfEmployment,
+      DateOfBirth,
+      DateOfRetirement,
+      Age,
+      EmpTypeCode,
+      DesgCode,
+      QualificationCode,
+      CasteCode,
+      CompCode,
+      DeptCode,
+      GangCode,
+      StatusCode,
+      MemberCode1,
+      MemberCode2,
+      MemberCode3,
+      PhotoPath,
+      SignPath,
+      AadharPath,
+      PanPath,
+      RationCardPath,
+      LicensePath,
+      BirthCertificatePath,
+      PolicePatilPath,
+      AgreementPath,
+      Doc1Path,
+      Doc2Path,
+      Doc3Path,
+      FamilyMembers,
+      Remark1,
+      Remark2,
+      Remark3,
+      CHECKEDBY,
+      USERID
+    )
+    VALUES (
+      ${EmpCode},
+      ${KYCCode},
+      N'${EmpName}',
+      N'${EmpNameEng}',
+      N'${AddressCurrent}',
+      N'${AddressPermanant}',
+      N'${City}',
+      '${Phone}',
+      '${MobileNo}',
+      '${Email}',
+      '${AadharNo}',
+      '${PanNo}',
+      '${RationCardNo}',
+      '${PFNo}',
+      '${PensionYears}',
+      '${BankAcNo}',
+      '${BankName}',
+      '${BankIFSC}',
+      '${Gender}',
+      '${MaritalStatus}',
+      '${DateOfEmployment}',
+      '${DateOfBirth}',
+      '${DateOfRetirement}',
+      '${Age}',
+      '${EmpTypeCode}',
+      '${DesigCode}',
+      '${QualificationCode}',
+      '${CasteCode}',
+      '${CompCode}',
+      '${DeptCode}',
+      '${GangCode}',
+      '${StatusCode}',
+      '${MemberCode1}',
+      '${MemberCode2}',
+      '${MemberCode3}',
+      '${PhotoPath}',
+      '${SignPath}',
+      '${AadharPath}',
+      '${PanPath}',
+      '${RationCardPath}',
+      '${LicensePath}',
+      '${BirthCertificatePath}',
+      '${PolicePatilPath}',
+      '${AgreementPath}',
+      '${Doc1Path}',
+      '${Doc2Path}',
+      '${Doc3Path}',
+      '${FamilyMembers}',
+      '${Remark1}',
+      '${Remark2}',
+      '${Remark3}',
+      '${CHECKEDBY}',
+      '${USERID}'
+    );
+  `;
+  
+    try {
+      await sql.query(query);
+      res.json({ message: 'Success' });
+    } catch (error) {
+      console.log('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  
+  app.delete('/api/employee/:EmpCode', (req, res) => {
+    const { EmpCode } = req.params;
+    const query = `DELETE FROM EmployeeMaster WHERE EmpCode='${EmpCode}'`;
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Employee deleted successfully' });
+      }
+    });
+  }); 
+  
+  app.put('/api/employee/:EmpCode', async (req, res) => {
+    const { EmpCode } = req.params;
+    const {
+      KYCCode,
+      EmpName,
+      EmpNameEng,
+      AddressCurrent,
+      AddressPermanant,
+      City,
+      Phone,
+      MobileNo,
+      Email,
+      AadharNo,
+      PanNo,
+      RationCardNo,
+      PFNo,
+      PensionYears,
+      BankAcNo,
+      BankName,
+      BankIFSC,
+      Gender,
+      MaritalStatus,
+      DateOfEmployment,
+      DateOfBirth,
+      DateOfRetirement,
+      Age,
+      EmpTypeCode,
+      DesgCode,
+      QualificationCode,
+      CasteCode,
+      CompCode,
+      DeptCode,
+      GangCode,
+      StatusCode,
+      MemberCode1,
+      MemberCode2,
+      MemberCode3,
+      PhotoPath,
+      SignPath,
+      AadharPath,
+      PanPath,
+      RationCardPath,
+      LicensePath,
+      BirthCertificatePath,
+      PolicePatilPath,
+      AgreementPath,
+      Doc1Path,
+      Doc2Path,
+      Doc3Path,
+      FamilyMembers,
+      Remark1,
+      Remark2,
+      Remark3,
+      CHECKEDBY,
+      USERID
+    } = req.body;
+  
+    const query = `
+      UPDATE EmployeeMaster
+      SET
+        KYCCode = '${KYCCode}',
+        EmpName = N'${EmpName}',
+        EmpNameEng = N'${EmpNameEng}',
+        AddressCurrent = N'${AddressCurrent}',
+        AddressPermanant = N'${AddressPermanant}',
+        City = N'${City}',
+        Phone = '${Phone}',
+        MobileNo = '${MobileNo}',
+        Email = N'${Email}',
+        AadharNo = '${AadharNo}',
+        PanNo = '${PanNo}',
+        RationCardNo = '${RationCardNo}',
+        PFNo = '${PFNo}',
+        PensionYears = '${PensionYears}',
+        BankAcNo = '${BankAcNo}',
+        BankName = N'${BankName}',
+        BankIFSC = '${BankIFSC}',
+        Gender = N'${Gender}',
+        MaritalStatus = N'${MaritalStatus}',
+        DateOfEmployment = '${DateOfEmployment}',
+        DateOfBirth = '${DateOfBirth}',
+        DateOfRetirement = '${DateOfRetirement}',
+        Age = '${Age}',
+        EmpTypeCode = '${EmpTypeCode}',
+        DesgCode = '${DesgCode}',
+        QualificationCode = '${QualificationCode}',
+        CasteCode = '${CasteCode}',
+        CompCode = '${CompCode}',
+        DeptCode = '${DeptCode}',
+        GangCode = '${GangCode}',
+        StatusCode = '${StatusCode}',
+        MemberCode1 = '${MemberCode1}',
+        MemberCode2 = '${MemberCode2}',
+        MemberCode3 = '${MemberCode3}',
+        PhotoPath = N'${PhotoPath}',
+        SignPath = N'${SignPath}',
+        AadharPath = N'${AadharPath}',
+        PanPath = N'${PanPath}',
+        RationCardPath = N'${RationCardPath}',
+        LicensePath = N'${LicensePath}',
+        BirthCertificatePath = N'${BirthCertificatePath}',
+        PolicePatilPath = N'${PolicePatilPath}',
+        AgreementPath = N'${AgreementPath}',
+        Doc1Path = N'${Doc1Path}',
+        Doc2Path = N'${Doc2Path}',
+        Doc3Path = N'${Doc3Path}',
+        FamilyMembers = '${FamilyMembers}',
+        Remark1 = N'${Remark1}',
+        Remark2 = N'${Remark2}',
+        Remark3 = N'${Remark3}',
+        CHECKEDBY = N'${CHECKEDBY}',
+        USERID = ${USERID}
+      WHERE
+        EmpCode = ${EmpCode};
+    `;
+  
+    try {
+      await sql.query(query);
+      res.json({ message: 'Employee updated successfully' });
+    } catch (error) {
+      console.log('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // For EmpFamilyMemberMaster------------------------------------------------------------------------------------
+  // GET all EmpFamilyMemberMaster
+  app.get('/api/empFamily/:EmpCode', (req, res) => {
+    const { EmpCode } = req.params;
+    const query = `SELECT * FROM EmpFamilyMemberMaster WHERE EmpCode = ${EmpCode}`;
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+  
+  app.post('/api/uploadFamilyPhoto' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Image Name : ",image);
+    return res.json({Status: "Success", FamilyMemberPhoto: image});
+  });
+  
+  app.post('/api/uploadFamilyDoc1' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Image Name : ",image);
+    return res.json({Status: "Success", FamilyMemberDoc1: image});
+  });
+  
+  app.post('/api/uploadFamilyDoc2' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Image Name : ",image);
+    return res.json({Status: "Success", FamilyMemberDoc2: image});
+  });
+  
+  app.post('/api/uploadFamilyDoc3' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Image Name : ",image);
+    return res.json({Status: "Success", FamilyMemberDoc3: image});
+  });
+  
+  app.post('/api/uploadFamilyDoc4' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Image Name : ",image);
+    return res.json({Status: "Success", FamilyMemberDoc4: image});
+  });
+  
+  app.post('/api/uploadFamilyDoc5' ,upload.single('image') ,(req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded.' });
+    }
+    
+    const image = req.file.filename;
+    console.log("Image Name : ",image);
+    return res.json({Status: "Success", FamilyMemberDoc5: image});
+  });
+  
+  
+  app.get('/api/getFamilyPhoto/:EmpCode', (req, res) => {
+  const empCode = req.params.EmpCode;
+  
+  const query = `SELECT FamilyMemberPhoto FROM EmpFamilyMemberMaster WHERE EmpCode = '${empCode}'`;
+  
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.error('Error fetching image:', err);
+      return res.status(500).json({ Message: 'Error fetching image' });
+    }
+  
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
+    }
+  
+    const imagePath = path.join('D:\\Image', result.recordset[0].FamilyMemberPhoto); // Corrected path
+    res.sendFile(imagePath);
+  });
+  });
+  
+  // Add Emp Family Member
+  app.post('/api/empFamily', (req, res) => {
+    const {
+      EmpCode,
+      FamilyMemberNo,
+      FamilyMemberName,
+      FamilyMemberDOB,
+      FamilyMemberAge,
+      FamilyMemberRelation,
+      FamilyMemberPhoto,
+      FamilyMemberDoc1,
+      FamilyMemberDoc2,
+      FamilyMemberDoc3,
+      FamilyMemberDoc4,
+      FamilyMemberDoc5,
+      Remark1,
+      UserID
+    } = req.body;
+  
+    const query = `
+    INSERT INTO EmpFamilyMemberMaster (
+        EmpCode, 
+        FamilyMemberNo,
+        FamilyMemberName,
+        FamilyMemberDOB,
+        FamilyMemberAge,
+        FamilyMemberRelation,
+        FamilyMemberPhoto,
+        FamilyMemberDoc1,
+        FamilyMemberDoc2,
+        FamilyMemberDoc3,
+        FamilyMemberDoc4,
+        FamilyMemberDoc5,
+        Remark1,
+        UserID
+      )
+      VALUES (
+        ${EmpCode},
+        ${FamilyMemberNo},
+        N'${FamilyMemberName}',
+        '${FamilyMemberDOB}',
+        ${FamilyMemberAge},
+        N'${FamilyMemberRelation}',
+        '${FamilyMemberPhoto}',
+        '${FamilyMemberDoc1}',
+        '${FamilyMemberDoc2}',
+        '${FamilyMemberDoc3}',
+        '${FamilyMemberDoc4}',
+        '${FamilyMemberDoc5}',
+        N'${Remark1}',
+        '${UserID}'
+        ) 
+    `;
+  
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: ' EmpFamilyMember created successfully' });
+      }
+    });
+  });
+  
+  app.put('/api/empFamily/:EmpCode', (req, res) => {
+    const { EmpCode } = req.params;
+    const {
+      FamilyMemberNo,
+      FamilyMemberName,
+      FamilyMemberDOB,
+      FamilyMemberAge,
+      FamilyMemberRelation,
+      FamilyMemberPhoto,
+      FamilyMemberDoc1,
+      FamilyMemberDoc2,
+      FamilyMemberDoc3,
+      FamilyMemberDoc4,
+      FamilyMemberDoc5,
+      Remark1
+    } = req.body;
+  
+    const query = `
+      UPDATE EmpFamilyMemberMaster
+      SET
+        FamilyMemberName = N'${FamilyMemberName}',
+        FamilyMemberDOB = '${FamilyMemberDOB}',
+        FamilyMemberAge = ${FamilyMemberAge},
+        FamilyMemberRelation = N'${FamilyMemberRelation}',
+        FamilyMemberPhoto = '${FamilyMemberPhoto}',
+        FamilyMemberDoc1 = '${FamilyMemberDoc1}',
+        FamilyMemberDoc2 = '${FamilyMemberDoc2}',
+        FamilyMemberDoc3 = '${FamilyMemberDoc3}',
+        FamilyMemberDoc4 = '${FamilyMemberDoc4}',
+        FamilyMemberDoc5 = '${FamilyMemberDoc5}',
+        Remark1 = N'${Remark1}'
+      WHERE EmpCode = ${EmpCode} AND FamilyMemberNo = ${FamilyMemberNo};
+  `;
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'EmpFamilyMember updated successfully' });
+      }
+    });
+  });
+  
+  app.delete('/api/empFamily/:EmpCode/:FamilyMemberNo', (req, res) => {
+    const { EmpCode, FamilyMemberNo } = req.params;
+    const query = `
+      DELETE FROM EmpFamilyMemberMaster
+      WHERE EmpCode = ${EmpCode} AND FamilyMemberNo = ${FamilyMemberNo};
+    `;
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'EmpFamilyMember deleted successfully' });
+      }
+    });
+  });
+  
+
+  // For StatusMaster------------------------------------------------------------------------------------
+  // GET all Status
+  app.get('/api/status', (req, res) => {
+    const query = 'SELECT * FROM StatusMaster';
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+  
+  // POST a new Status
+  app.post('/api/status', (req, res) => {
+    const { StatusCode, StatusDesc, UserID } = req.body;
+    const query = `
+      INSERT INTO StatusMaster (StatusCode, StatusDesc, UserID)
+      VALUES ('${StatusCode}', N'${StatusDesc}',  N'${UserID}');
+    `;
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Status created successfully' });
+      }
+    });
+  });
+  
+  // PUT update an existing Status
+  app.put('/api/status/:StatusCode', (req, res) => {
+    const { StatusCode } = req.params;
+    const { StatusDesc, UserID } = req.body;
+    const query = `
+      UPDATE StatusMaster
+      SET StatusDesc=N'${StatusDesc}', UserID=N'${UserID}'
+      WHERE StatusCode='${StatusCode}';
+    `;
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        if (result.rowsAffected && result.rowsAffected[0] > 0) {
+          res.json({
+            message: 'Status updated successfully',
+            StatusCode: StatusCode,
+            StatusDesc,
+            UserID,
+          });
+        } else {
+          res.status(404).json({ error: 'Record not found' });
+        }
+      }
+    });
+  });
+  
+  // DELETE a Status
+  app.delete('/api/status/:StatusCode', (req, res) => {
+    const { StatusCode } = req.params;
+    const query = `DELETE FROM StatusMaster WHERE StatusCode='${StatusCode}'`;
+    sql.query(query, (err) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json({ message: 'Status deleted successfully' });
+      }
+    });
+  }); 
   
