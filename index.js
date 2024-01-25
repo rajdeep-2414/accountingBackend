@@ -583,49 +583,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-
-  // // PUT (Update) an existing AcGroupMaster entry
-  // app.put('/api/acgroups/:AcGroupCode', (req, res) => {
-  //   const { AcGroupCode } = req.params;
-  //   const {
-  //     AcGroupName,
-  //     AcGroupNameEng,
-  //     AcGroupType,
-  //     AcGroupPrintPosition,
-  //     DeptCode,
-  //     YearCode,
-  //     UserID,
-  //   } = req.body;
-    
-  //   const query = `
-  //     UPDATE AcGroupMaster
-  //     SET AcGroupName='${AcGroupName}', AcGroupNameEng='${AcGroupNameEng}', AcGroupType='${AcGroupType}', AcGroupPrintPosition='${AcGroupPrintPosition}', DeptCode='${DeptCode}', YearCode='${YearCode}', UserID='${UserID}'
-  //     WHERE AcGroupCode=${AcGroupCode};
-  //   `;
-    
-  //   sql.query(query, (err, result) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       if (result.rowsAffected && result.rowsAffected[0] > 0) {
-  //         res.json({
-  //           message: 'AcGroupMaster entry updated successfully',
-  //           AcGroupName,
-  //           AcGroupNameEng,
-  //           AcGroupType,
-  //           AcGroupPrintPosition,
-  //           DeptCode,
-  //           YearCode,
-  //           UserID,
-  //         });
-  //       } else {
-  //         res.status(404).json({ error: 'Record not found' });
-  //       }
-  //     }
-  //   });
-  // });
-
   // DELETE an AcGroupMaster entry
   app.delete('/api/acgroups/:acGroupCode', (req, res) => {
     const { acGroupCode } = req.params;
@@ -3265,41 +3222,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
     });
   })
-//old
-  // app.post('/api/Savetranentries', (req, res) => {
-  //   // SQL query to insert data into TranEntry and delete from TranEntryTempSub
-  //   const query = `
-  //     DELETE TE
-  //       FROM TranEntry AS TE
-  //       WHERE EXISTS (
-  //         SELECT 1 
-  //         FROM TranEntryTempSub AS TETS 
-  //         WHERE TETS.EntryNo = TE.EntryNo 
-  //           AND TETS.Flag = TE.Flag
-  //       );
-
-  //     INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID)
-  //     SELECT  EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt , DeptCode, YearCode, CompCode, UserID, COMPUTERID
-  //     FROM TranEntryTempSub;
-
-  //     DELETE TETS
-  //     FROM TranEntryTempSub AS TETS
-  //     WHERE EXISTS (
-  //       SELECT 1 
-  //       FROM TranEntry AS TE 
-  //       WHERE TE.EntryNo = TETS.EntryNo 
-  //         AND TE.Flag = TETS.Flag
-  //     );
-  //   `;
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       res.json({ message: 'Data saved successfully' });
-  //     }
-  //   });
-  // });
 
   app.post('/api/Savetranentries', async (req, res) => {
     const { flag,DeptCode,YearCode,CompCode, entryNo,operation} = req.body; 
@@ -3625,27 +3547,27 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       DELETE FROM Tranentry 
       WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
 
-      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
-      VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}',15, '${AcCode}','${TotNetAmt}');
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
+      VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}',15, '${AcCode}','${TotNetAmt}',0);
 
 
-      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
-      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 4,0,'${GrossTotAmt}');
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
+      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 4,0,'${GrossTotAmt}',0);
 
 
-      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
-      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 7,0,'${TotCGST}');
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
+      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 7,0,'${TotCGST}',0);
 
 
-      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
-      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 8,0,'${TotSGST}');
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
+      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 8,0,'${TotSGST}',0);
 
 
-      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
-      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 9,0,'${TotIGST}');
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
+      VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 9,0,'${TotIGST}',0);
 
 
-      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode,DrAmt, CrAmt) 
+      INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode,DrAmt, CrAmt,DrAmt) 
       VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 12,0,'${RoundOff < 0 ? -RoundOff : 0}','${RoundOff > 0 ? RoundOff : 0}');
       `;
       }
@@ -3655,24 +3577,24 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     DELETE FROM Tranentry 
     WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
     
-    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt)
-    VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}', 16,'${AcCode}','${TotNetAmt}');
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
+    VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}', 16,'${AcCode}','${TotNetAmt}',0);
 
     
-    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
-    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 3,0,'${GrossTotAmt}');
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
+    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 3,0,'${GrossTotAmt}',0);
 
     
-    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
-    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 7,0,'${TotCGST}');
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
+    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 7,0,'${TotCGST}',0);
 
     
-    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
-    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 8,0,'${TotSGST}');
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
+    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 8,0,'${TotSGST}',0);
 
     
-    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt)
-    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 9,0,'${TotIGST}');
+    INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
+    VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 9,0,'${TotIGST}',0);
 
     
     INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt, DrAmt)
@@ -4322,6 +4244,24 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
+  app.get('/api/DayBook', (req, res) => {
+    const {ledgerCode, endDate} = req.query;
+    const query = `select * from viewTranentries where Accode != @Accode and Trdate < @Trdate;`;
+  
+    const request = new sql.Request();
+    request.input('Accode', sql.Int, ledgerCode);
+    request.input('Trdate', sql.NVarChar, endDate);
+  
+    request.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+
   app.get('/api/ViewTranEntries', (req, res) => {
     const {ledgerCode, endDate} = req.query;
     const query = `select * from viewTranentries where Accode = @Accode and Trdate < @Trdate;`;
@@ -4341,12 +4281,13 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   app.get('/api/viewBillRegister', (req, res) => {
-    const {ledgerCode, endDate} = req.query;
-    const query = `select * from viewBillRegister where Trdate < @Trdate AND Flag IN ('S', 'P');`;
+    const {ledgerCode, endDate , flag} = req.query;
+    const query = `select * from viewBillRegister where Trdate < @Trdate AND Flag =@flag;`;
   
     const request = new sql.Request();
     request.input('Accode', sql.Int, ledgerCode);
     request.input('Trdate', sql.NVarChar, endDate);
+    request.input('flag', sql.NVarChar, flag);
   
     request.query(query, (err, result) => {
       if (err) {
@@ -4354,6 +4295,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         res.status(500).json({ error: 'Internal server error' });
       } else {
         res.json(result.recordset);
+        console.log('flag:', flag);
       }
     });
   });
@@ -4372,209 +4314,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
   
   
-  // API endpoint for uploading images
-  /* app.post('/api/upload', upload.single('file'), (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded.' });
-    }
-  
-    const filePath = req.file.path;
-    res.json({ success: true, filePath });
-  });
-  
-  // API endpoint for fetching images
-  app.get('/api/view/:filename', (req, res) => {
-    const filename = req.params.filename;
-    res.sendFile(path.join(__dirname, 'D:\\Images', filename));
-  }); */
-  
-  /* app.post('/api/employee/upload', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'sign', maxCount: 1 }]), async (req, res) => {
-    try {
-      const photoPath = req.files['photo'][0].filename;
-      const signPath = req.files['sign'][0].filename;
-  
-      res.json({ Status: 'Success', PhotoPath: photoPath, SignPath: signPath });
-    } catch (error) {
-      console.log('Error uploading image:', error);
-      res.status(500).json({ Status: 'Failed' });
-    }
-  
-  }); */
-  
-  /* app.post('/api/employee/upload', upload.fields([{ name: 'photo', maxCount: 10 }, { name: 'sign', maxCount: 10 }]), async (req, res) => {
-    try {
-      if (!req.files || !req.files['photo'] || !req.files['sign']) {
-        console.log('Error: Files not provided.');
-        res.status(400).json({ Status: 'Failed', message: 'Files not provided' });
-        return;
-      }
-      const photoPath = req.files['photo'][0].filename;
-      const signPath = req.files['sign'][0].filename;
-      console.log("Photopath : ",req.files['photo'][0].filename);
-  
-      if (photoPath && signPath) {
-        res.json({ Status: 'Success', Photo: photoPath, Sign: signPath });
-      } else {
-        console.log('Error: Photo or Sign path is undefined.');
-        res.status(500).json({ Status: 'Failed', message: 'Photo or Sign path is undefined' });
-      }
-    } catch (error) {
-      console.log('Error uploading image:', error);
-      res.status(500).json({ Status: 'Failed' });
-    }
-  }); */
-  
-  /* app.post('/api/employee/upload', upload.single('image'), async (req, res) => {
-    try {
-      const photoPath = req.file.filename;
-  
-      console.log("photopath : ", photoPath);
-  
-      if (photoPath) {
-        res.json({ Status: 'Success', Photo: photoPath });
-      } else {
-        console.log('Error: Photo or Sign path is undefined.');
-        res.status(500).json({ Status: 'Failed', message: 'Photo or Sign path is undefined' });
-      }
-    } catch (error) {
-      console.log('Error uploading image:', error);
-      res.status(500).json({ Status: 'Failed' });
-    }
-  }); */
-  
-  /* app.post('/api/employee/aadharupload' ,upload.single('image') ,(req, res) => {
-    const { EmpCode } = req.body;
-    const image = req.file.filename;
-    console.log("Image Name : ",image);
-  
-    const query = `INSERT INTO EmployeeMaster (EmpCode, AadharPath) VALUES ('${EmpCode}','${image}')`;
-    
-    sql.query(query, (err, result) => {
-        if(err) return res.json({Message : "Error"});
-        return res.json({Status : "Success"});
-    })
-    console.log(req.file);
-  });
-  
-  app.get('/api/employee/getImage/:EmpCode', (req, res) => {
-    const empCode = req.params.EmpCode;
-  
-    const query = `SELECT AadharPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-    sql.query(query, (err, result) => {
-      if (err) {
-        console.error('Error fetching image:', err);
-        return res.status(500).json({ Message: 'Error fetching image' });
-      }
-  
-      if (result.recordset.length === 0) {
-        return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-      }
-  
-      const imagePath = path.join('D:\\Image', result.recordset[0].AadharPath); // Corrected path
-      res.sendFile(imagePath);
-    });
-  });
-   */
-  
-  
-  /*2 app.post('/upload/:EmpCode', upload.single('image'), (req, res) => {
-    const image = req.file.filename;
-    const empCode = req.params.EmpCode;
-    
-    // Determine if it's Aadhar card or PAN card based on the request path
-    const isAadharUpload = req.path.includes('AadharPath');
-    
-    const columnName = isAadharUpload ? 'AadharPath' : 'PanPath';
-    
-    const query = `
-    INSERT INTO EmployeeMaster (EmpCode, ${columnName}) 
-    VALUES ('${empCode}', '${image}')
-    ON DUPLICATE KEY UPDATE ${columnName} = '${image}';
-  `;
-    sql.query(query, (err, result) => {
-      if (err) return res.json({ Message: 'Error' });
-      return res.json({ Status: 'Success', filePath: image });
-    });
-  });
-  
-  app.get('/getImage/:EmpCode/:CardType', (req, res) => {
-    const empCode = req.params.EmpCode;
-    const cardType = req.params.CardType; // 'Aadhar' or 'Pan'
-    
-    const columnName = cardType === 'Aadhar' ? 'AadharPath' : 'PanPath';
-    
-    const query = `SELECT ${columnName} FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-    
-    sql.query(query, (err, result) => {
-      if (err) {
-        console.error(`Error fetching ${cardType} image:`, err);
-        return res.status(500).json({ Message: `Error fetching ${cardType} image` });
-      }
-  
-      if (result.recordset.length === 0) {
-        return res.status(404).json({ Message: `${cardType} Image not found for the given EmpCode` });
-      }
-  
-      const imagePath = path.join('D:\\Image', result.recordset[0][columnName]);
-      res.sendFile(imagePath);
-    });
-  }); */
-  
-  /*3 app.post('/upload/:EmpCode', upload.single('image'), async (req, res) => {
-    const image = req.file.filename;
-    const empCode = req.params.EmpCode;
-  
-    // Determine if it's Aadhar card or PAN card based on the request path
-    const isAadharUpload = req.path.includes('AadharPath');
-    console.log("Is Aadhar Upload : ",isAadharUpload);
-    const columnName = isAadharUpload ? 'AadharPath' : 'PanPath';
-    
-    // Check if record already exists
-    const checkQuery = `SELECT '${columnName}' FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-    try {
-      const checkResult = await sql.query(checkQuery);
-  
-      if (checkResult.recordset.length === 0) {
-        // If record doesn't exist, perform INSERT
-        const insertQuery = `INSERT INTO EmployeeMaster (EmpCode, '${columnName}') VALUES ('${empCode}', '${image}')`;
-        await sql.query(insertQuery);
-      } else {
-        // If record exists, perform UPDATE
-        const updateQuery = `UPDATE EmployeeMaster SET '${columnName}' = '${image}' WHERE EmpCode = '${empCode}'`;
-        await sql.query(updateQuery);
-      }
-  
-      return res.json({ Status: 'Success', filePath: image });
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      return res.status(500).json({ Message: 'Error uploading image' });
-    }
-  });
-  
-  app.get('/getImage/:EmpCode/:CardType', async (req, res) => {
-    const empCode = req.params.EmpCode;
-    const cardType = req.params.CardType; // 'Aadhar' or 'Pan'
-  
-    const columnName = cardType === 'Aadhar' ? 'AadharPath' : 'PanPath';
-  
-    const query = `SELECT '${columnName}' FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-    try {
-      const result = await sql.query(query);
-  
-      if (result.recordset.length === 0) {
-        return res.status(404).json({ Message: `${cardType} Image not found for the given EmpCode` });
-      }
-  
-      const imagePath = path.join('D:\\Image', result.recordset[0][columnName]);
-      return res.sendFile(imagePath);
-    } catch (error) {
-      console.error(`Error fetching ${cardType} image:`, error);
-      return res.status(500).json({ Message: `Error fetching ${cardType} image` });
-    }
-  }); */
   
   //Aadhar Upload
   app.post('/uploadAadhar' ,upload.single('image') ,(req, res) => {
@@ -4584,44 +4323,9 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     
     const image = req.file.filename;
     console.log("AadharCard Name : ",image);
-    return res.json({Status: "Success", AadharCard: image});
-  
-  /*   const empCode = req.params.EmpCode;
-  /*   const query = `INSERT INTO EmployeeMaster (EmpCode, AadharPath) VALUES ('${empCode}', '${image}')`;*/  
-    // const query = `MERGE INTO EmployeeMaster AS target
-    // USING (VALUES ('${empCode}', '${image}')) AS source(EmpCode, AadharPath)
-    // ON target.EmpCode = source.EmpCode
-    // WHEN MATCHED THEN
-    //   UPDATE SET target.AadharPath = source.AadharPath
-    // WHEN NOT MATCHED THEN
-    //   INSERT (EmpCode, AadharPath) VALUES (source.EmpCode, source.AadharPath);
-    // `;
-  
-    // sql.query(query, (err, result) => {
-    //     if(err) return res.json({Message : "Error"});
-    //     return res.json({Status : "Success"});
-    // }) 
+    return res.json({Status: "Success", AadharCard: image}); 
   }); 
-  
-  /* app.get('/getImage/:EmpCode', (req, res) => {
-  const empCode = req.params.EmpCode;
-  
-  const query = `SELECT AadharPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.error('Error fetching image:', err);
-      return res.status(500).json({ Message: 'Error fetching image' });
-    }
-  
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-    }
-  
-    const imagePath = path.join('D:\\Image', result.recordset[0].AadharPath); // Corrected path
-    res.sendFile(imagePath);
-  });
-  }); */
+
   
   //Pan Upload
   app.post('/uploadPan' ,upload.single('image') ,(req, res) => {
@@ -4634,25 +4338,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     return res.json({Status: "Success", PanCard: image});
   }); 
   
-  /* app.get('/getPanImage/:EmpCode', (req, res) => {
-  const empCode = req.params.EmpCode;
-  
-  const query = `SELECT PanPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.error('Error fetching image:', err);
-      return res.status(500).json({ Message: 'Error fetching image' });
-    }
-  
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-    }
-  
-    const imagePath = path.join('D:\\Image', result.recordset[0].PanPath); // Corrected path
-    res.sendFile(imagePath);
-  });
-  }); */
+ 
   
   //RationCard Upload 
   app.post('/uploadRC' ,upload.single('image') ,(req, res) => {
@@ -4665,25 +4351,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     return res.json({Status: "Success", RationCard: image}); 
   }); 
   
-  /* app.get('/getRCImage/:EmpCode', (req, res) => {
-  const empCode = req.params.EmpCode;
   
-  const query = `SELECT RationCardPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.error('Error fetching image:', err);
-      return res.status(500).json({ Message: 'Error fetching image' });
-    }
-  
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-    }
-  
-    const imagePath = path.join('D:\\Image', result.recordset[0].RationCardPath); // Corrected path
-    res.sendFile(imagePath);
-  });
-  }); */
   
   //License Upload 
   app.post('/uploadLicense' ,upload.single('image') ,(req, res) => {
@@ -4696,25 +4364,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     return res.json({Status: "Success", License: image}); 
   }); 
   
-  /* app.get('/getLicenseImage/:EmpCode', (req, res) => {
-  const empCode = req.params.EmpCode;
-  
-  const query = `SELECT LicensePath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.error('Error fetching image:', err);
-      return res.status(500).json({ Message: 'Error fetching image' });
-    }
-  
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-    }
-  
-    const imagePath = path.join('D:\\Image', result.recordset[0].LicensePath); // Corrected path
-    res.sendFile(imagePath);
-  });
-  }); */
+ 
   
   //BirthCertificate Upload 
   app.post('/uploadBirth' ,upload.single('image') ,(req, res) => {
@@ -4727,26 +4377,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     return res.json({Status: "Success", Birth: image});
   }); 
   
-  /* app.get('/getBirthImage/:EmpCode', (req, res) => {
-  const empCode = req.params.EmpCode;
-  
-  const query = `SELECT BirthCertificatePath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.error('Error fetching image:', err);
-      return res.status(500).json({ Message: 'Error fetching image' });
-    }
-  
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-    }
-  
-    const imagePath = path.join('D:\\Image', result.recordset[0].BirthCertificatePath); // Corrected path
-    res.sendFile(imagePath);
-  });
-  }); */
-  
+ 
   //PolicePatil Upload 
   app.post('/uploadPolice' ,upload.single('image') ,(req, res) => {
     if (!req.file) {
@@ -4758,26 +4389,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     return res.json({Status: "Success", PolicePatil: image});
   }); 
   
-  /* app.get('/getPoliceImage/:EmpCode', (req, res) => {
-  const empCode = req.params.EmpCode;
-  
-  const query = `SELECT PolicePatilPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.error('Error fetching image:', err);
-      return res.status(500).json({ Message: 'Error fetching image' });
-    }
-  
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-    }
-  
-    const imagePath = path.join('D:\\Image', result.recordset[0].PolicePatilPath); // Corrected path
-    res.sendFile(imagePath);
-  });
-  }); */
-  
+
   //Agreement Upload 
   app.post('/uploadAgreement' ,upload.single('image') ,(req, res) => {
     if (!req.file) {
@@ -4789,26 +4401,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     return res.json({Status: "Success", Agreement: image});
   }); 
   
-  /* app.get('/getAgreementImage/:EmpCode', (req, res) => {
-  const empCode = req.params.EmpCode;
-  
-  const query = `SELECT AgreementPath FROM EmployeeMaster WHERE EmpCode = '${empCode}'`;
-  
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.error('Error fetching image:', err);
-      return res.status(500).json({ Message: 'Error fetching image' });
-    }
-  
-    if (result.recordset.length === 0) {
-      return res.status(404).json({ Message: 'Image not found for the given EmpCode' });
-    }
-  
-    const imagePath = path.join('D:\\Image', result.recordset[0].AgreementPath); // Corrected path
-    res.sendFile(imagePath);
-  });
-  }); */
-  
+ 
   app.post('/api/employee', async (req, res) => {
     const {
       EmpCode,
@@ -5419,4 +5012,502 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
     });
   }); 
+
+  // for Vehiclemaster 
+// Get all Vehicle master
+app.get('/api/vehicle', (req, res) => {
+  const query = 'SELECT * FROM VehicleMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// Create a new Vehiclemaster
+app.post('/api/vehicle', (req, res) => {
+  const { 
+    VehicleCode,
+    VehicleNo,
+    CategoryCode,
+    OwnerName,
+    ModelYear ,
+    HYPDetails,
+    RegNo,
+    ChassisNo,
+    EngineNo,
+    DateOfPurchase,
+    PurchaseDetails,
+    InsuranceDetails,
+    InsuranceExpiryDate,
+    TaxDetails,
+    TaxExpiryDate,
+    TYRESIZE,
+    TANKSIZE,
+    OtherDetails,
+    AvgKM,
+    CapacityWeight,
+    DeptCode,
+    TransporterCode,
+    CapacityCrate,
+    RatePerKm,
+    Status,
+    } = req.body;
+    const query = `
+    INSERT INTO VehicleMaster (
+      VehicleCode,
+      VehicleNo,
+      CategoryCode,
+      OwnerName,
+      ModelYear,
+      HYPDetails,
+      RegNo,
+      ChassisNo,
+      EngineNo,
+      DateOfPurchase,
+      PurchaseDetails,
+      InsuranceDetails,
+      InsuranceExpiryDate,
+      TaxDetails,
+      TaxExpiryDate,
+      TYRESIZE,
+      TANKSIZE,
+      OtherDetails,
+      AvgKM,
+      CapacityWeight,
+      DeptCode,
+      TransporterCode,
+      CapacityCrate,
+      RatePerKm,
+      Status
+    )
+    VALUES (
+      '${VehicleCode}',
+      N'${VehicleNo}',
+      '${CategoryCode}',
+      N'${OwnerName}',
+      N'${ModelYear}',
+      N'${HYPDetails}',
+      N'${RegNo}',
+      N'${ChassisNo}',
+      N'${EngineNo}',
+      '${DateOfPurchase}',
+      N'${PurchaseDetails}',
+      N'${InsuranceDetails}',
+      '${InsuranceExpiryDate}',
+      N'${TaxDetails}',
+      '${TaxExpiryDate}',
+      N'${TYRESIZE}',
+      N'${TANKSIZE}',
+      N'${OtherDetails}',
+      '${AvgKM}',
+      '${CapacityWeight}',
+      '${DeptCode}',
+      '${TransporterCode}',
+      '${CapacityCrate}',
+      '${RatePerKm}',
+      '${Status}'
+    )
+  `;
   
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Vehicle created successfully' });
+    }
+  });
+});
+
+// Update a state by VehicleCode
+app.put('/api/vehicle/:VehicleCode', (req, res) => {
+  const { VehicleCode } = req.params;
+  const { 
+    VehicleNo,
+    CategoryCode,
+    OwnerName,
+    ModelYear ,
+    HYPDetails,
+    RegNo,
+    ChassisNo,
+    EngineNo,
+    DateOfPurchase,
+    PurchaseDetails,
+    InsuranceDetails,
+    InsuranceExpiryDate,
+    TaxDetails,
+    TaxExpiryDate,
+    TYRESIZE,
+    TANKSIZE,
+    OtherDetails,
+    AvgKM,
+    CapacityWeight,
+    DeptCode,
+    TransporterCode,
+    CapacityCrate,
+    RatePerKm,
+    Status,
+    } = req.body;
+    const query = `
+    UPDATE VehicleMaster 
+    SET 
+      VehicleNo = '${VehicleNo}',
+      CategoryCode = '${CategoryCode}',
+      OwnerName = '${OwnerName}',
+      ModelYear = '${ModelYear}',
+      HYPDetails = '${HYPDetails}',
+      RegNo = '${RegNo}',
+      ChassisNo = '${ChassisNo}',
+      EngineNo = '${EngineNo}',
+      DateOfPurchase = '${DateOfPurchase}',
+      PurchaseDetails = '${PurchaseDetails}',
+      InsuranceDetails = '${InsuranceDetails}',
+      InsuranceExpiryDate = '${InsuranceExpiryDate}',
+      TaxDetails = '${TaxDetails}',
+      TaxExpiryDate = '${TaxExpiryDate}',
+      TYRESIZE = '${TYRESIZE}',
+      TANKSIZE = '${TANKSIZE}',
+      OtherDetails = '${OtherDetails}',
+      AvgKM = '${AvgKM}',
+      CapacityWeight = '${CapacityWeight}',
+      DeptCode = '${DeptCode}',
+      TransporterCode = '${TransporterCode}',
+      CapacityCrate = '${CapacityCrate}',
+      RatePerKm = '${RatePerKm}',
+      Status = '${Status}'
+    WHERE VehicleCode = '${VehicleCode}';
+  `;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'VehicleMaster updated successfully',
+          VehicleCode: VehicleCode,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// Delete a state by Vehicle
+app.delete('/api/vehicle/:VehicleCode', (req, res) => {
+  const { VehicleCode } = req.params;
+  const query = `DELETE FROM VehicleMaster WHERE VehicleCode=${VehicleCode}`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Vehicle deleted successfully' });
+    }
+  });
+});
+
+
+
+// for settingmaster 
+// Get all settingmaster
+app.get('/api/setting', (req, res) => {
+  const query = 'SELECT * FROM SettingsMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// Create a new settingmaster
+app.post('/api/setting', (req, res) => {
+  const { 
+    SettingCode,
+    SettingDesc1,
+    SettingValue1,
+    SettingDesc2,
+    SettingValue2,
+    SettingDesc3,
+    SettingValue3,
+    UserID, 
+    } = req.body;
+  const query = `
+    INSERT INTO SettingsMaster ( 
+    SettingCode, SettingDesc1, SettingValue1, SettingDesc2, 
+    SettingValue2, SettingDesc3, SettingValue3, UserID )
+    VALUES (
+    ${SettingCode}, N'${SettingDesc1}', N'${SettingValue1}', N'${SettingDesc2}',
+    N'${SettingValue2}',N'${SettingDesc3}',N'${SettingValue3}', ${UserID} );
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Setting created successfully' });
+    }
+  });
+});
+
+// Update a state by SettingCode
+app.put('/api/setting/:SettingCode', (req, res) => {
+  const { SettingCode } = req.params;
+  const { 
+    SettingDesc1,
+    SettingValue1,
+    SettingDesc2,
+    SettingValue2,
+    SettingDesc3,
+    SettingValue3,
+    UserID, 
+    } = req.body;
+    const query = `
+  UPDATE SettingsMaster SET 
+    SettingDesc1 = N'${SettingDesc1}', 
+    SettingValue1 = N'${SettingValue1}', 
+    SettingDesc2 = N'${SettingDesc2}', 
+    SettingValue2 = N'${SettingValue2}', 
+    SettingDesc3 = N'${SettingDesc3}', 
+    SettingValue3 = N'${SettingValue3}', 
+    UserID = ${UserID}
+  WHERE SettingCode = ${SettingCode};
+`;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'SettingMaster updated successfully',
+          SettingCode: SettingCode,
+          SettingDesc1,
+          SettingValue1,
+          SettingDesc2,
+          SettingValue2,
+          SettingDesc3,
+          SettingValue3,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// Delete a state by SettingCode
+app.delete('/api/setting/:SettingCode', (req, res) => {
+  const { SettingCode } = req.params;
+  const query = `DELETE FROM SettingsMaster WHERE SettingCode=${SettingCode}`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Setting deleted successfully' });
+    }
+  });
+});
+
+
+// for Productmaster 
+// Get all Productmaster
+app.get('/api/product', (req, res) => {
+  const query = 'SELECT * FROM ProductMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// Create a new Productmaster
+app.post('/api/product', (req, res) => {
+  const { 
+    ProductCode,
+    ProductName,
+    ProductNameEng,
+    Remark1,
+    Remark2,
+    UserID, 
+    } = req.body;
+  const query = `
+    INSERT INTO ProductMaster (ProductCode, ProductName, ProductNameEng, Remark1, Remark2, UserID)
+    VALUES (${ProductCode}, N'${ProductName}', N'${ProductNameEng}', N'${Remark1}',N'${Remark2}', ${UserID});
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Product created successfully' });
+    }
+  });
+});
+
+// Update a state by ProductMaster
+app.put('/api/product/:ProductCode', (req, res) => {
+  const { ProductCode } = req.params;
+  const { 
+    ProductName,
+    ProductNameEng,
+    Remark1,
+    Remark2,
+    UserID, 
+    } = req.body;
+    const query = `
+  UPDATE ProductMaster 
+  SET 
+    ProductName = N'${ProductName}', 
+    ProductNameEng = N'${ProductNameEng}', 
+    Remark1 = N'${Remark1}', 
+    Remark2 = N'${Remark2}', 
+    UserID = '${UserID}'
+  WHERE ProductCode = ${ProductCode};
+`;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'Product updated successfully',
+          ProductCode: ProductCode,
+          ProductName,
+          ProductNameEng,
+          Remark1,
+          Remark2,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// Delete a state by ProductMaster
+app.delete('/api/product/:ProductCode', (req, res) => {
+  const { ProductCode } = req.params;
+  const query = `DELETE FROM ProductMaster WHERE ProductCode = ${ProductCode}`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Product deleted successfully' });
+    }
+  });
+});
+
+
+
+// for HamaliTypemaster 
+// Get all HamaliTypemaster
+app.get('/api/hamaliType', (req, res) => {
+  const query = 'SELECT * FROM HamaliTypeMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// Create a new HamaliType
+app.post('/api/hamaliType', (req, res) => {
+  const { 
+    HamaliTypeCode,
+    HamaliType,
+    HamaliTypeEng,
+    UserID, 
+    } = req.body;
+  const query = `
+    INSERT INTO HamaliTypeMaster (HamaliTypeCode, HamaliType, HamaliTypeEng, UserID)
+    VALUES (${HamaliTypeCode}, N'${HamaliType}', N'${HamaliTypeEng}', ${UserID});
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'HamaliType created successfully' });
+    }
+  });
+});
+
+// Update a state by HamaliType
+app.put('/api/hamaliType/:HamaliTypeCode', (req, res) => {
+  const { HamaliTypeCode } = req.params;
+  const { 
+    HamaliType,
+    HamaliTypeEng,
+    UserID, 
+    } = req.body;
+    const query = `
+  UPDATE HamaliTypeMaster 
+  SET 
+    HamaliType = N'${HamaliType}', 
+    HamaliTypeEng = N'${HamaliTypeEng}', 
+    UserID = '${UserID}'
+  WHERE 
+    HamaliTypeCode = ${HamaliTypeCode};
+`;
+
+const params = {
+  UserID: UserID,
+  HamaliTypeCode: HamaliTypeCode
+};
+
+sql.query(query, params, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'HamaliType updated successfully',
+          HamaliTypeCode: HamaliTypeCode,
+          HamaliType,
+          HamaliTypeEng,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// Delete a state by HamaliType
+app.delete('/api/hamaliType/:HamaliTypeCode', (req, res) => {
+  const { HamaliTypeCode } = req.params;
+  const query = `DELETE FROM HamaliTypeMaster WHERE HamaliTypeCode=${HamaliTypeCode}`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'HamaliType deleted successfully' });
+    }
+  });
+});
