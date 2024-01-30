@@ -133,7 +133,10 @@ app.post('/connect', async (req, res) => {
     } else {
       return res.status(400).json({ error: 'Invalid database number provided' , databaseNumber});
     }
-
+ if (sql && sql.close) {
+    await sql.close();
+    console.log("Closed existing database connection");
+  }
 
   if (!databaseName) {
     return res.status(400).json({ error: 'Database name not provided' });
