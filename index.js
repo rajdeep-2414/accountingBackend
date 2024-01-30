@@ -46,27 +46,122 @@
   app.use(cors());
 
 
-  // Database configuration
-  const config = {
-    user: 'Well1',
-    password: 'well228608',
-    server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
-    port: 1857, 
-    database: 'GapData1',
-    options: {
-      encrypt: true, 
-      trustServerCertificate: true, 
-    },
-  };
+  // // Database configuration
+  // const config = {
+  //   user: 'Well1',
+  //   password: 'well228608',
+  //   server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
+  //   port: 1857, 
+  //   database: 'GapData1',
+  //   options: {
+  //     encrypt: true, 
+  //     trustServerCertificate: true, 
+  //   },
+  // };
 
-  // Connect to the database
-  sql.connect(config)
-    .then(() => {
-      console.log('Connected to the database');
-    })
-    .catch((err) => {
-      console.error('Database connection failed:', err);
-    });
+  // // Connect to the database
+  // sql.connect(config)
+  //   .then(() => {
+  //     console.log('Connected to the database');
+  //   })
+  //   .catch((err) => {
+  //     console.error('Database connection failed:', err);
+  //   });
+
+// Database configuration
+const dbConfig = {
+  user: 'Well1',
+  password: 'well228608',
+  server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
+  port: 1857, 
+  options: {
+    encrypt: true, 
+    trustServerCertificate: true, 
+  },
+};
+
+// Connect to the database function
+async function connectToDatabase(databaseName) {
+  const config = {
+    ...dbConfig,
+    database: databaseName
+  };
+  try {
+    await sql.connect(config);
+    console.log("config", config);
+    console.log(`Connected to the ${databaseName} database`);
+    return true;
+  } catch (error) {
+    console.error('Error connecting to the database:', error);
+    return false;
+  }
+}
+
+// const connectToDatabaseMiddleware = async (req, res, next) => {
+//   const { databaseNumber } = req.body; 
+//   const  databaseName  = 'IndGapdata1'; 
+//   const  databaseName1  = 'Gapdata1'; 
+
+//   try {
+    
+//     const isConnected = await connectToDatabase(databaseName);
+
+//     if (isConnected) {
+      
+//       req.selectedDatabase = databaseName;
+//       next(); 
+//     } else {
+//       res.status(500).json({ error: 'Failed to connect to the database' });
+//     }
+//   } catch (error) {
+//     console.error('Error connecting to the database:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// };
+
+// app.use(connectToDatabaseMiddleware);
+
+// Route to handle requests
+app.post('/connect', async (req, res) => {
+  const { databaseNumber } = req.body; 
+
+    let databaseName;
+    if (databaseNumber === 101) {
+      databaseName = 'Gapdata1';
+    } else if (databaseNumber === 102) {
+      databaseName = 'IndGapdata1';
+    } else {
+      return res.status(400).json({ error: 'Invalid database number provided' , databaseNumber});
+    }
+
+
+  if (!databaseName) {
+    return res.status(400).json({ error: 'Database name not provided' });
+  }
+
+  try {
+    const isConnected = await connectToDatabase(databaseName);
+    if (isConnected) {
+      res.json({ message: `Successfully connected to the ${databaseName} database` });
+    } else {
+      res.status(500).json({ error: 'Failed to connect to the database' });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/close-sql-connection', async (req, res) => {
+  try {
+    // Close the SQL connection
+    await sql.close();
+    res.json({ message: 'SQL connection closed successfully' });
+  } catch (error) {
+    console.error('Error closing SQL connection:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
   // Start the server
   const PORT = process.env.PORT || 8090;
@@ -88,141 +183,41 @@
 
 const upload = multer({ storage : storage });
 
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // Validate input (optional, depending on your requirements)
+  const query = `
+    SELECT * FROM Users
+    WHERE UserName = '${username}'
+  `;
+
+  sql.query(query, async (err, result) => {
+    if (err) {
+      console.log('Error Executing SQL query :', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.recordset.length > 0) {
+        const storedHashedPassword = result.recordset[0].Password;
+
+        // Compare entered password with stored hashed password
+        const passwordMatch = await bcrypt.compare(password, storedHashedPassword);
+
+        const loggedInUsername = result.recordset[0].UserName;
+        if (passwordMatch) {
+          res.json({ message: 'Login successful', username: loggedInUsername });
+        } else {
+          res.status(401).json({ error: 'Invalid credentials' });
+        }
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    }
+  });
+});
 // Serve static files from the photopath directory
+
 app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
-
-// app.get('/api/employee', async (req, res) => {
-//   try {
-//       // Assuming you have a database connection
-//       const pool = await sql.connect(config);
-
-//       // Fetch data from EmployeeMaster table
-//       const result = await pool.request().query('SELECT * FROM EmployeeMaster');
-
-//       res.send(result.recordset);
-//   } catch (error) {
-//       console.error('Error fetching employee data:', error);
-//       res.status(500).send({ error: 'Error fetching employee data' });
-//   }
-// });
-
-
-// // Handle file upload
-// app.post('/upload', upload.single('image'), async (req, res) => {
-//   try {
-//       // Assuming you have a database connection
-//       // Save the path to the image in your database (if needed)
-//       const imagePath = path.join('images', req.file.filename); // Update the path
-
-//       // Add console log for success
-//       console.log('Image uploaded successfully! Path:', imagePath);
-
-//       res.send({ imagePath });
-//   } catch (error) {
-//       console.error('Error uploading image:', error);
-//       res.status(500).send({ error: 'Error uploading image' });
-//   }
-// });
-
-// app.post('/upload1', upload.single('image'), async (req, res) => {
-//   try {
-//       // Assuming you have a database connection
-//       // Save the path to the image in your database (if needed)
-
-//       const imagePath = path.join('images', req.file.filename); // Update the path
-
-//       // Add console log for success
-//       console.log('Image uploaded successfully! Path:', imagePath);
-
-//       res.send({ imagePath });
-//   } catch (error) {
-//       console.error('Error uploading image:', error);
-//       res.status(500).send({ error: 'Error uploading image' });
-//   }
-// });
-
-
-// app.post('/api/employee', async (req, res) => {
-//   try {
-//       const {
-//           EmpCode,
-//           PhotoPath,
-//           SignPath,
-//           USERID,
-//       } = req.body;
-
-//       // Assuming you have a database connection
-//       const pool = await sql.connect(config);
-
-//       // Insert data into EmployeeMaster table
-//       const result = await pool.request()
-//           .input('EmpCode', sql.VarChar, EmpCode)
-//           .input('PhotoPath', sql.VarChar, PhotoPath)
-//           .input('SignPath', sql.VarChar, SignPath)
-//           .input('USERID', sql.Int, USERID)
-//           .query('INSERT INTO EmployeeMaster (EmpCode, PhotoPath, SignPath, USERID) VALUES (@EmpCode, @PhotoPath, @SignPath, @USERID)');
-
-//       res.send({ success: true, message: 'Employee added successfully!' });
-//   } catch (error) {
-//       console.error('Error adding employee:', error);
-//       res.status(500).send({ success: false, message: 'Error adding employee' });
-//   }
-// });
-
-
-
-  //create admin 
-
-  // app.post('/api/login', (req, res) => {
-  //   const { username, password } = req.body;
-
-  //   // Validate input (optional, depending on your requirements)
-
-  //   const query = `
-  //     SELECT UserName FROM Users
-  //     WHERE UserName = '${username}' AND Password = '${password}'
-  //   `;
-
-  //   sql.query(query, (err, result) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       if (result.recordset.length > 0) {
-  //         const loggedInUsername = result.recordset[0].UserName;
-  //         res.json({ message: 'Login successful', username: loggedInUsername });
-  //       } else {
-  //         res.status(401).json({ error: 'Invalid credentials' });
-  //       }
-  //     }
-  //   });
-  // });
-
-  // // app.post('/api/login', (req, res) => {
-  // //   const { username, password } = req.body;
-
-  // //   // Validate input (optional, depending on your requirements)
-
-  // //   const query = `
-  // //     SELECT * FROM Users
-  // //     WHERE UserName = '${username}' AND Password = '${password}'
-  // //   `;
-
-  // //   sql.query(query, (err, result) => {
-  // //     if (err) {
-  // //       console.log('Error:', err);
-  // //       res.status(500).json({ error: 'Internal server error' });
-  // //     } else {
-  // //       if (result.recordset.length > 0) {
-  // //         res.json({ message: 'Login successful' });
-  // //       } else {
-  // //         res.status(401).json({ error: 'Invalid credentials' });
-  // //       }
-  // //     }
-  // //   });
-  // // });
-
-  //for login
 
   app.put('/api/change-password', async (req, res) => {
     const { username, oldPassword, newPassword } = req.body;
@@ -279,8 +274,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-
-
 
     app.post('/api/users', async (req, res) => {
       const {
@@ -344,40 +337,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
     });
 
-  app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-
-    // Validate input (optional, depending on your requirements)
-    const query = `
-      SELECT * FROM Users
-      WHERE UserName = '${username}'
-    `;
-
-    sql.query(query, async (err, result) => {
-      if (err) {
-        console.log('Error Executing SQL query :', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        if (result.recordset.length > 0) {
-          const storedHashedPassword = result.recordset[0].Password;
-
-          // Compare entered password with stored hashed password
-          const passwordMatch = await bcrypt.compare(password, storedHashedPassword);
-
-          const loggedInUsername = result.recordset[0].UserName;
-          if (passwordMatch) {
-            res.json({ message: 'Login successful', username: loggedInUsername });
-          } else {
-            res.status(401).json({ error: 'Invalid credentials' });
-          }
-        } else {
-          res.status(401).json({ error: 'Invalid credentials' });
-        }
-      }
-    });
-  });
-
-
+ 
   //users
     // app.post('/api/users', (req, res) => {
     //   const {
@@ -1311,10 +1271,11 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         console.error('Error:', err);
         res.status(500).json({ error: 'Internal server error' });
       } else {
-        if (result && result.affectedRows > 0) {
+        console.log('Result:', result);
+        if (result.rowsAffected && result.rowsAffected[0] > 0) {
           res.json({
             message: 'ItemSubGroup updated successfully',
-            ItemSubGroupCode: itemSubGroupCode,
+            ItemSubGroupCode: ItemSubGroupCode,
             ItemSubGroupName,
             ItemSubGroupNameEnglish,
             ItemMainGroupCode,
@@ -4216,7 +4177,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
 
 //Trai-Balance report ------------------------------------------------------------------------------------
   app.get('/api/trialbalance', (req, res) => {
-    const { CompCode, DeptCode, YearCode, startDate } = req.query;
+    const { CompCode, DeptCode, YearCode, startDate, endDate } = req.query;
     const query = `
       DECLARE @return_value int;
   
@@ -4245,12 +4206,13 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   app.get('/api/DayBook', (req, res) => {
-    const {ledgerCode, endDate} = req.query;
-    const query = `select * from viewTranentries where Accode != @Accode and Trdate < @Trdate;`;
+    const { ledgerCode, startDate, endDate } = req.query;
+    const query = `SELECT * FROM viewTranentries WHERE Accode != @Accode AND Trdate >= @StartDate AND Trdate <= @EndDate;`;
   
     const request = new sql.Request();
     request.input('Accode', sql.Int, ledgerCode);
-    request.input('Trdate', sql.NVarChar, endDate);
+    request.input('StartDate', sql.NVarChar, startDate);
+    request.input('EndDate', sql.NVarChar, endDate);
   
     request.query(query, (err, result) => {
       if (err) {
@@ -4260,15 +4222,16 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         res.json(result.recordset);
       }
     });
-  });
+});
 
   app.get('/api/ViewTranEntries', (req, res) => {
-    const {ledgerCode, endDate} = req.query;
-    const query = `select * from viewTranentries where Accode = @Accode and Trdate < @Trdate;`;
+    const {ledgerCode,  startDate, endDate} = req.query;
+    const query = `select * from viewTranentries where Accode = @Accode and  Trdate >= @StartDate AND Trdate <= @EndDate;`;
   
     const request = new sql.Request();
     request.input('Accode', sql.Int, ledgerCode);
-    request.input('Trdate', sql.NVarChar, endDate);
+    request.input('StartDate', sql.NVarChar, startDate);
+    request.input('EndDate', sql.NVarChar, endDate);
   
     request.query(query, (err, result) => {
       if (err) {
@@ -4282,11 +4245,12 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
 
   app.get('/api/viewBillRegister', (req, res) => {
     const {ledgerCode, endDate , flag} = req.query;
-    const query = `select * from viewBillRegister where Trdate < @Trdate AND Flag =@flag;`;
+    const query = `select * from viewBillRegister where  Trdate >= @StartDate AND Trdate <= @EndDate AND Flag =@flag;`;
   
     const request = new sql.Request();
     request.input('Accode', sql.Int, ledgerCode);
-    request.input('Trdate', sql.NVarChar, endDate);
+    request.input('StartDate', sql.NVarChar, startDate);
+    request.input('EndDate', sql.NVarChar, endDate);
     request.input('flag', sql.NVarChar, flag);
   
     request.query(query, (err, result) => {
@@ -5511,3 +5475,4 @@ app.delete('/api/hamaliType/:HamaliTypeCode', (req, res) => {
     }
   });
 });
+
