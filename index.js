@@ -80,6 +80,71 @@ const dbConfig = {
   },
 };
 
+const defaultDatabase = 'GapCompany'; // Default database name
+
+// Connect to the default database on server startup
+connectToDatabase(defaultDatabase)
+  .then(() => {
+    console.log(`Connected to the default database: ${defaultDatabase}`);
+  })
+  .catch((error) => {
+    console.error('Error connecting to the default database:', error);
+  });
+
+  app.get('/api/company_code', (req, res) => {
+    const query = 'SELECT * FROM CompanyMaster';
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+
+  app.get('/api/database_year_master', (req, res) => {
+    const query = 'SELECT * FROM GapCompany.dbo.YearMaster';
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+
+
+  app.post('/connect', async (req, res) => {
+    const { companyCode, financialYear } = req.body;
+  
+    if (!companyCode || !financialYear) {
+      return res.status(400).json({ error: 'Company code and financial year are required' });
+    }
+  
+    const databaseName = `GapData${companyCode}FY${financialYear}`;
+    console.log('GapData${companyCode}-${financialYear}',`GapData${companyCode}FY${financialYear}`);
+    // const databaseName = `GapData${companyCode}`;
+  
+    if (sql && sql.close) {
+      await sql.close();
+      console.log('Closed existing database connection');
+    }
+  
+    try {
+      const isConnected = await connectToDatabase(databaseName);
+      if (isConnected) {
+        res.json({ message: `Successfully connected to the ${databaseName} database` });
+      } else {
+        res.status(500).json({ error: 'Failed to connect to the database' });
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+
 // Connect to the database function
 async function connectToDatabase(databaseName) {
   const config = {
@@ -97,63 +162,6 @@ async function connectToDatabase(databaseName) {
   }
 }
 
-// const connectToDatabaseMiddleware = async (req, res, next) => {
-//   const { databaseNumber } = req.body; 
-//   const  databaseName  = 'IndGapdata1'; 
-//   const  databaseName1  = 'Gapdata1'; 
-
-//   try {
-    
-//     const isConnected = await connectToDatabase(databaseName);
-
-//     if (isConnected) {
-      
-//       req.selectedDatabase = databaseName;
-//       next(); 
-//     } else {
-//       res.status(500).json({ error: 'Failed to connect to the database' });
-//     }
-//   } catch (error) {
-//     console.error('Error connecting to the database:', error);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// };
-
-// app.use(connectToDatabaseMiddleware);
-
-// Route to handle requests
-app.post('/connect', async (req, res) => {
-  const { databaseNumber } = req.body; 
-
-    let databaseName;
-    if (databaseNumber === 101) {
-      databaseName = 'Gapdata1';
-    } else if (databaseNumber === 102) {
-      databaseName = 'IndGapdata1';
-    } else {
-      return res.status(400).json({ error: 'Invalid database number provided' , databaseNumber});
-    }
- if (sql && sql.close) {
-    await sql.close();
-    console.log("Closed existing database connection");
-  }
-
-  if (!databaseName) {
-    return res.status(400).json({ error: 'Database name not provided' });
-  }
-
-  try {
-    const isConnected = await connectToDatabase(databaseName);
-    if (isConnected) {
-      res.json({ message: `Successfully connected to the ${databaseName} database` });
-    } else {
-      res.status(500).json({ error: 'Failed to connect to the database' });
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
 app.post('/close-sql-connection', async (req, res) => {
   try {
@@ -165,6 +173,22 @@ app.post('/close-sql-connection', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+// Assuming you have your route defined like this
+app.post('/logout', async (req, res) => {
+  try {
+    await sql.connect(defaultDatabase);
+    console.log(`Reconnected to the default database: ${defaultDatabase}`);
+
+    // Respond to the client indicating successful logout
+    res.json({ message: 'Logout successful' });
+  } catch (error) {
+    console.error('Error closing SQL connection or reconnecting to the default database:', error);
+    // Respond with an error to the client
+    res.status(500).json({ error: 'An error occurred during logout' });
+  }
+});
+
 
   // Start the server
   const PORT = process.env.PORT || 8090;
@@ -340,61 +364,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
     });
 
- 
-  //users
-    // app.post('/api/users', (req, res) => {
-    //   const {
-    //     username,
-    //     password,
-    //     isAdmin,
-    //     allowMasterAdd,
-    //     allowMasterEdit,
-    //     allowMasterDelete,
-    //     allowEntryAdd,
-    //     allowEntryEdit,
-    //     allowEntryDelete,
-    //     allowBackdatedEntry,
-    //     passwordHint,
-    //   } = req.body;
-
-    //   const query = `
-    //     INSERT INTO Users (
-    //       UserName,
-    //       Password,
-    //       Administrator,
-    //       AllowMasterAdd,
-    //       AllowMasterEdit,
-    //       AllowMasterDelete,
-    //       AllowEntryAdd,
-    //       AllowEntryEdit,
-    //       AllowEntryDelete,
-    //       AllowBackdatedEntry,
-    //       Passwordhint
-    //     )
-    //     VALUES (
-    //       '${username}',
-    //       '${password}',
-    //       ${isAdmin ? 1 : 0},
-    //       ${allowMasterAdd ? 1 : 0},
-    //       ${allowMasterEdit ? 1 : 0},
-    //       ${allowMasterDelete ? 1 : 0},
-    //       ${allowEntryAdd ? 1 : 0},
-    //       ${allowEntryEdit ? 1 : 0},
-    //       ${allowEntryDelete ? 1 : 0},
-    //       ${allowBackdatedEntry ? 1 : 0},
-    //       '${passwordHint}'
-    //     )
-    //   `;
-
-    //   sql.query(query, (err) => {
-    //     if (err) {
-    //       console.log('Error:', err);
-    //       res.status(500).json({ error: 'Internal server error' });
-    //     } else {
-    //       res.json({ message: 'User created successfully' });
-    //     }
-    //   });
-    // });
 
     app.get('/api/getusers', (req, res) => {
       const query = `SELECT * FROM Users`;
@@ -496,20 +465,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  // app.put('/api/roomtypes/:AcGroupCode', (req, res) => {
-  //   const { AcGroupCode } = req.params;
-  //   const { RoomTypeCode, RoomTypeDesc, Remark1, Remark2 } = req.body;
-  //   const query = `UPDATE RoomTypeMaster SET RoomTypeCode='${RoomTypeCode}', RoomTypeDesc='${RoomTypeDesc}', Remark1='${Remark1}', Remark2='${Remark2}' WHERE RoomTypeCode='${roomTypeCode}'`;
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error updating room type:', err); // Log the error
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       console.log('Room type updated successfully'); // Log the success
-  //       res.json({ message: 'Room type updated successfully' });
-  //     }
-  //   });
-  // });
 
   app.put('/api/acgroups/:AcGroupCode', (req, res) => {
     const { AcGroupCode } = req.params;
@@ -4180,7 +4135,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
 
 //Trai-Balance report ------------------------------------------------------------------------------------
   app.get('/api/trialbalance', (req, res) => {
-    const { CompCode, DeptCode, YearCode, startDate, endDate } = req.query;
+    const { CompCode, DeptCode, YearCode, endDate } = req.query;
     const query = `
       DECLARE @return_value int;
   
@@ -4196,7 +4151,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     request.input('CompCode', sql.Int, CompCode);
     request.input('DeptCode', sql.Int, DeptCode);
     request.input('YearCode', sql.Int, YearCode);
-    request.input('Trdate', sql.NVarChar, startDate);
+    request.input('Trdate', sql.NVarChar, endDate);
   
     request.query(query, (err, result) => {
       if (err) {
@@ -4207,6 +4162,47 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
     });
   });
+
+  //for start and endDate
+//   app.get('/api/trialbalance', (req, res) => {
+//     const { CompCode, DeptCode, YearCode, startDate, endDate } = req.query;
+//     const query = `
+//       DECLARE @return_value int;
+  
+//       EXEC @return_value = [dbo].[ProcTrialBalance]
+//           @CompCode = @CompCode,
+//           @DeptCode = @DeptCode,
+//           @YearCode = @YearCode,
+//           @StartDate = @StartDate,
+//           @EndDate = @EndDate;
+  
+//       SELECT 'Return Value' = @return_value;`;
+  
+//     const pool = new sql.ConnectionPool(/*Your SQL Server Configuration*/);
+//     const poolConnect = pool.connect();
+//     poolConnect.then(() => {
+//         const request = new sql.Request(pool);
+//         request.input('CompCode', sql.Int, CompCode);
+//         request.input('DeptCode', sql.Int, DeptCode);
+//         request.input('YearCode', sql.Int, YearCode);
+//         request.input('StartDate', sql.NVarChar, startDate);
+//         request.input('EndDate', sql.NVarChar, endDate);
+
+//         request.query(query, (err, result) => {
+//             if (err) {
+//                 console.log('Error:', err);
+//                 res.status(500).json({ error: 'Internal server error' });
+//             } else {
+//                 res.json(result.recordset);
+//             }
+//             pool.close();
+//         });
+//     }).catch(err => {
+//         console.log('Database connection failed:', err);
+//         res.status(500).json({ error: 'Database connection failed' });
+//     });
+// });
+
 
   app.get('/api/DayBook', (req, res) => {
     const { ledgerCode, startDate, endDate } = req.query;
@@ -4247,7 +4243,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   app.get('/api/viewBillRegister', (req, res) => {
-    const {ledgerCode, endDate , flag} = req.query;
+    const {ledgerCode,startDate, endDate , flag} = req.query;
     const query = `select * from viewBillRegister where  Trdate >= @StartDate AND Trdate <= @EndDate AND Flag =@flag;`;
   
     const request = new sql.Request();
