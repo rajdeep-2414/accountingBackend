@@ -5634,3 +5634,78 @@ app.delete('/api/hamaliType/:HamaliTypeCode', (req, res) => {
     }
   });
 });
+
+// Get all Bankmaster
+app.get('/api/bankmaster', (req, res) => {
+  const query = 'SELECT * FROM BankMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.post('/api/PostBankMaster', (req, res) => {
+  const { 
+    bankCode,
+    bankName,
+    bankBranch,
+    bankIFSC 
+    } = req.body;
+  const query = `
+    INSERT INTO BankMaster (  BankCode, BankName, BankBranch, BankIFSC)
+    VALUES (${bankCode}, N'${bankName}', N'${bankBranch}', '${bankIFSC}');
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'HamaliType created successfully' });
+    }
+  });
+});
+
+app.put('/api/PutBankMaster/:bankCode', (req, res) => {
+  const bankCode = req.params.bankCode;
+  const { bankName, bankBranch, bankIFSC } = req.body;
+
+  const query = `
+    UPDATE BankMaster 
+    SET 
+      BankName = N'${bankName}', 
+      BankBranch = N'${bankBranch}', 
+      BankIFSC = '${bankIFSC}'
+    WHERE BankCode = ${bankCode};
+  `;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({ message: `Bank record with bankCode ${bankCode} updated successfully` });
+      } else {
+        res.status(404).json({ error: `Bank record with bankCode ${bankCode} not found` });
+      }
+    }
+  });
+});
+
+app.delete('/api/DeleteBankMaster/:bankCode', (req, res) => {
+  const { bankCode } = req.params;
+  const query = `DELETE FROM BankMaster WHERE BankCode=${bankCode}`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'HamaliType deleted successfully' });
+    }
+  });
+});
+
