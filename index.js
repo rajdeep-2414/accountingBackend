@@ -92,7 +92,7 @@ connectToDatabase(defaultDatabase)
   });
 
   app.get('/api/company_code', (req, res) => {
-    const query = 'SELECT * FROM CompanyMaster';
+    const query = 'SELECT * FROM GapCompany.dbo.CompanyMaster';
     sql.query(query, (err, result) => {
       if (err) {
         console.log('Error:', err);
@@ -3587,7 +3587,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
           INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
           VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 9,0,'${TotIGST}',0);
           
-          INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt, DrAmt)
+          INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt, CrAmt)
           VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 12,0,'${RoundOff < 0 ? -RoundOff : 0}','${RoundOff > 0 ? RoundOff : 0}');
           `;
           }
@@ -3633,7 +3633,10 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
 
   app.delete('/api/NewSelltries/:entryNo/:flag', (req, res) => {
     const { entryNo, flag } = req.params;
-    const query = `DELETE FROM BillSub WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
+    const query = `DELETE FROM BillSub  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+                    DELETE FROM BillEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+                    DELETE FROM TranEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';`;
+
     console.log("print",entryNo, flag);
     sql.query(query, (err) => {
       if (err) {
