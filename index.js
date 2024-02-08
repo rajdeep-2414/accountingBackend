@@ -39,6 +39,10 @@
   const bcrypt = require('bcrypt');
   const path = require('path');
   const multer = require('multer');
+  const AWS = require('aws-sdk');
+  const { v4: uuidv4 } = require('uuid');
+  const { PutObjectCommand, S3Client } = require('@aws-sdk/client-s3');
+  const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 
   const app = express();
@@ -190,6 +194,195 @@ app.post('/logout', async (req, res) => {
 });
 
 
+app.get('/file/:filename', (req, res) => {
+  const params = {
+      Bucket: 'webgap-images',
+      Key: req.params.filename // Use the filename specified in the URL
+  };
+
+  s3.getObject(params, (err, data) => {
+      if (err) {
+          console.error(err);
+          return res.status(500).send('Error retrieving file from S3.');
+      }
+
+      // Retrieve original filename from metadata
+      const originalFilename = data.Metadata.originalFilename;
+
+      // Set the appropriate Content-Type header
+      res.set('Content-Type', data.ContentType);
+
+      // Set the appropriate Content-Disposition header to make the browser display the file
+      res.set('Content-Disposition', `inline; filename="${originalFilename}"`);
+
+      // Send the file data in the response
+      res.send(data.Body);
+  });
+});
+
+app.delete('/deletefile/:filename', (req, res) => {
+  const params = {
+      Bucket: 'webgap-images',
+      Key: "56679fb0-b901-4c22-a6cb-8ca6dea65873-efgh.jpg" // Use the filename specified in the URL
+  };
+
+  s3.deleteObject(params, (err, data) => {
+      if (err) {
+          console.error('Error deleting file:', err);
+          return res.status(500).send('Error deleting file from S3.');
+      }
+
+      console.log('File deleted successfully:', req.params.filename);
+      res.send('File deleted successfully.');
+  });
+});
+
+// Configure AWS
+const s3 = new AWS.S3({
+  accessKeyId: "AKIAZVZ4WKJWCRNGWV56",
+  secretAccessKey: "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",
+});
+
+// correct code
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // Limit file size to 5MB
+});
+
+
+app.post('/multiple-upload', upload.array('images', 9), (req, res) => {
+  const files = req.files;
+  if (!files || files.length === 0) {
+      return res.status(400).send('No files uploaded.');
+  }
+
+  // Loop through each file and upload it to S3
+  files.forEach(file => {
+    const params = {
+      Bucket: 'webgap-images',
+      Key: `${file.originalname}`, // Unique key for the file
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      Metadata: {
+        originalFilename: file.originalname // Include original filename as metadata
+      }
+    };
+
+    s3.upload(params, (err, data) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send('Error uploading files to S3.');
+      }
+      console.log('File uploaded successfully:', data.Location);
+    });
+  });
+
+  res.send('Files uploaded successfully.');
+});
+
+
+app.post('/upload', upload.single('image'), (req, res) => {
+  const file = req.file;
+  if (!file) {
+      return res.status(400).send('No file uploaded.');
+  }
+
+  const params = {
+      Bucket: 'webgap-images',
+      Key: `${uuidv4()}-${file.originalname}`, // Unique key for the file
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      Metadata: {
+        originalFilename: file.originalname // Include original filename as metadata
+    }
+  };
+
+  s3.upload(params, (err, data) => {
+      if (err) {
+          console.error(err);
+          return res.status(500).send('Error uploading file to S3.');
+      }
+      res.send('File uploaded successfully.');
+  });
+});
+
+
+app.get('/file/:fileName', (req, res) => {
+  const fileName = req.params.fileName;
+
+  // Check if the mapping for the file name exists
+  if (!fileMappings[fileName]) {
+    return res.status(404).send('File not found.');
+  }
+
+  // Retrieve file from S3 using the UUID-prefixed key
+  const params = {
+    Bucket: 'webgap-images',
+    Key: fileMappings[fileName]
+  };
+
+  s3.getObject(params, (err, data) => {
+    if (err) {
+      console.error("Error getting object: ", err);
+      return res.status(500).send('Error getting file from S3.');
+    }
+
+    // Set response headers based on file metadata
+    res.set('Content-Type', data.ContentType);
+    res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    // Send the file data as response
+    res.send(data.Body);
+  });
+});
+
+
+// app.get('/file/:filename', (req, res) => {
+//   const params = {
+//       Bucket: 'webgap-images',
+//       Key: req.params.filename // Use the filename specified in the URL
+//   };
+
+//   s3.getObject(params, (err, data) => {
+//       if (err) {
+//           console.error(err);
+//           return res.status(500).send('Error retrieving file from S3.');
+//       }
+
+//       // Retrieve original filename from metadata
+//       const originalFilename = data.Metadata.originalFilename;
+
+//       // Set the appropriate Content-Type header
+//       res.set('Content-Type', data.ContentType);
+
+//       // Set the appropriate Content-Disposition header to make the browser display the file
+//       res.set('Content-Disposition', `inline; filename="${originalFilename}"`);
+
+//       // Send the file data in the response
+//       res.send(data.Body);
+//   });
+// });
+
+app.delete('/deletefile/:filename', (req, res) => {
+  const params = {
+      Bucket: 'webgap-images',
+      Key: "56679fb0-b901-4c22-a6cb-8ca6dea65873-efgh.jpg" // Use the filename specified in the URL
+  };
+
+  s3.deleteObject(params, (err, data) => {
+      if (err) {
+          console.error('Error deleting file:', err);
+          return res.status(500).send('Error deleting file from S3.');
+      }
+
+      console.log('File deleted successfully:', req.params.filename);
+      res.send('File deleted successfully.');
+  });
+});
+
+
+
+
   // Start the server
   const PORT = process.env.PORT || 8090;
   app.listen(PORT, () => {
@@ -198,17 +391,17 @@ app.post('/logout', async (req, res) => {
 
   ///im upload
 
- const storage = multer.diskStorage({
-   destination: (req, file, cb) => {
-      const destinationPath = path.join('C:/Users/91942/Pictures/photopath');
-      cb(null, destinationPath);
-   },
-   filename: (req, file, cb) => {
-      cb(null, file.originalname);
-   },
-});
+//  const storage = multer.diskStorage({
+//    destination: (req, file, cb) => {
+//       const destinationPath = path.join('C:/Users/91942/Pictures/photopath');
+//       cb(null, destinationPath);
+//    },
+//    filename: (req, file, cb) => {
+//       cb(null, file.originalname);
+//    },
+// });
 
-const upload = multer({ storage : storage });
+// const upload = multer({ storage : storage });
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
@@ -4708,6 +4901,8 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   
+
+  
   app.delete('/api/employee/:EmpCode', (req, res) => {
     const { EmpCode } = req.params;
     const query = `DELETE FROM EmployeeMaster WHERE EmpCode='${EmpCode}'`;
@@ -5711,4 +5906,3 @@ app.delete('/api/DeleteBankMaster/:bankCode', (req, res) => {
     }
   });
 });
-
