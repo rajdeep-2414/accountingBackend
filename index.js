@@ -281,7 +281,7 @@ app.post('/multiple-upload', upload.array('images', 9), (req, res) => {
 });
 
 
-app.post('/upload', upload.single('image'), (req, res) => {
+app.post('/single-upload', upload.single('image'), (req, res) => {
   const file = req.file;
   if (!file) {
       return res.status(400).send('No file uploaded.');
@@ -289,7 +289,7 @@ app.post('/upload', upload.single('image'), (req, res) => {
 
   const params = {
       Bucket: 'webgap-images',
-      Key: `${uuidv4()}-${file.originalname}`, // Unique key for the file
+      Key: `${file.originalname}`, // Unique key for the file
       Body: file.buffer,
       ContentType: file.mimetype,
       Metadata: {
@@ -4746,7 +4746,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       DateOfEmployment,
       DateOfBirth,
       DateOfRetirement,
-      Age,
+      RetireAge,
       EmpTypeCode,
       DesigCode,
       QualificationCode,
@@ -4775,7 +4775,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       Remark2,
       Remark3,
       CHECKEDBY,
-      USERID,
+      USERID
     } = req.body;
   
     const query = `
@@ -4835,8 +4835,8 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       USERID
     )
     VALUES (
-      ${EmpCode},
-      ${KYCCode},
+      '${EmpCode}',
+      '${KYCCode}',
       N'${EmpName}',
       N'${EmpNameEng}',
       N'${AddressCurrent}',
@@ -4858,7 +4858,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       '${DateOfEmployment}',
       '${DateOfBirth}',
       '${DateOfRetirement}',
-      '${Age}',
+      '${RetireAge}',
       '${EmpTypeCode}',
       '${DesigCode}',
       '${QualificationCode}',
@@ -4901,8 +4901,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   
-
-  
   app.delete('/api/employee/:EmpCode', (req, res) => {
     const { EmpCode } = req.params;
     const query = `DELETE FROM EmployeeMaster WHERE EmpCode='${EmpCode}'`;
@@ -4941,7 +4939,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       DateOfEmployment,
       DateOfBirth,
       DateOfRetirement,
-      Age,
+      RetireAge,
       EmpTypeCode,
       DesgCode,
       QualificationCode,
@@ -4998,7 +4996,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         DateOfEmployment = '${DateOfEmployment}',
         DateOfBirth = '${DateOfBirth}',
         DateOfRetirement = '${DateOfRetirement}',
-        Age = '${Age}',
+        Age = '${RetireAge}',
         EmpTypeCode = '${EmpTypeCode}',
         DesgCode = '${DesgCode}',
         QualificationCode = '${QualificationCode}',
@@ -5906,3 +5904,4 @@ app.delete('/api/DeleteBankMaster/:bankCode', (req, res) => {
     }
   });
 });
+
