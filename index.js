@@ -5791,13 +5791,7 @@ app.put('/api/hamaliType/:HamaliTypeCode', (req, res) => {
   WHERE 
     HamaliTypeCode = ${HamaliTypeCode};
 `;
-
-const params = {
-  UserID: UserID,
-  HamaliTypeCode: HamaliTypeCode
-};
-
-sql.query(query, params, (err, result) => {
+sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
       res.status(500).json({ error: 'Internal server error' });
