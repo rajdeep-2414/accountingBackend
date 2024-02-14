@@ -43,34 +43,19 @@
   const { v4: uuidv4 } = require('uuid');
   const { PutObjectCommand, S3Client } = require('@aws-sdk/client-s3');
   const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+  const session = require('express-session');
+  const cookieParser = require('cookie-parser');
 
 
   const app = express();
   app.use(bodyParser.json());
   app.use(cors());
-
-
-  // // Database configuration
-  // const config = {
-  //   user: 'Well1',
-  //   password: 'well228608',
-  //   server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
-  //   port: 1857, 
-  //   database: 'GapData1',
-  //   options: {
-  //     encrypt: true, 
-  //     trustServerCertificate: true, 
-  //   },
-  // };
-
-  // // Connect to the database
-  // sql.connect(config)
-  //   .then(() => {
-  //     console.log('Connected to the database');
-  //   })
-  //   .catch((err) => {
-  //     console.error('Database connection failed:', err);
-  //   });
+  app.use(cookieParser());
+  app.use(session({
+    secret: 'abcdabcd',
+    resave: false,
+    saveUninitialized: true,
+  }));
 
 // Database configuration
 const dbConfig = {
@@ -248,7 +233,64 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 } // Limit file size to 5MB
 });
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
 
+  // Validate input (optional, depending on your requirements)
+  const query = `
+    SELECT * FROM Users
+    WHERE UserName = '${username}'
+  `;
+
+  sql.query(query, async (err, result) => {
+    if (err) {
+      console.log('Error Executing SQL query :', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.recordset.length > 0) {
+        const storedHashedPassword = result.recordset[0].Password;
+
+        // Compare entered password with stored hashed password
+        const passwordMatch = await bcrypt.compare(password, storedHashedPassword);
+
+        const loggedInUsername = result.recordset[0].UserName;
+        if (passwordMatch) {
+          res.json({ message: 'Login successful', username: loggedInUsername });
+        } else {
+          res.status(401).json({ error: 'Invalid credentials' });
+        }
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    }
+  });
+});
+
+const checkDeleteAuthority = (req, res, next) => {
+  console.log('Checking delete authority middleware');
+  const username = req.session.username;
+  console.log('Username:', username);
+  const query = `SELECT AllowMasterDelete FROM Users WHERE UserName='${username}'`; 
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result && result.recordset && result.recordset.length > 0) { 
+        const allowDelete = result.recordset[0].AllowMasterDelete;
+        if (allowDelete === 1) { 
+          console.log("allowDelete", allowDelete);
+          console.log('SQL Query:', query);
+          next(); 
+        } else {
+          res.status(403).json({ error: 'Not allowed to delete' });
+        }
+      } else {
+        res.status(403).json({ error: 'User not found or permission not set' });
+      }
+    }
+  });
+};
 
 app.post('/multiple-upload', upload.array('images', 9), (req, res) => {
   const files = req.files;
@@ -336,33 +378,6 @@ app.get('/file/:fileName', (req, res) => {
   });
 });
 
-
-// app.get('/file/:filename', (req, res) => {
-//   const params = {
-//       Bucket: 'webgap-images',
-//       Key: req.params.filename // Use the filename specified in the URL
-//   };
-
-//   s3.getObject(params, (err, data) => {
-//       if (err) {
-//           console.error(err);
-//           return res.status(500).send('Error retrieving file from S3.');
-//       }
-
-//       // Retrieve original filename from metadata
-//       const originalFilename = data.Metadata.originalFilename;
-
-//       // Set the appropriate Content-Type header
-//       res.set('Content-Type', data.ContentType);
-
-//       // Set the appropriate Content-Disposition header to make the browser display the file
-//       res.set('Content-Disposition', `inline; filename="${originalFilename}"`);
-
-//       // Send the file data in the response
-//       res.send(data.Body);
-//   });
-// });
-
 app.delete('/deletefile/:filename', (req, res) => {
   const params = {
       Bucket: 'webgap-images',
@@ -403,38 +418,7 @@ app.delete('/deletefile/:filename', (req, res) => {
 
 // const upload = multer({ storage : storage });
 
-app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
 
-  // Validate input (optional, depending on your requirements)
-  const query = `
-    SELECT * FROM Users
-    WHERE UserName = '${username}'
-  `;
-
-  sql.query(query, async (err, result) => {
-    if (err) {
-      console.log('Error Executing SQL query :', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      if (result.recordset.length > 0) {
-        const storedHashedPassword = result.recordset[0].Password;
-
-        // Compare entered password with stored hashed password
-        const passwordMatch = await bcrypt.compare(password, storedHashedPassword);
-
-        const loggedInUsername = result.recordset[0].UserName;
-        if (passwordMatch) {
-          res.json({ message: 'Login successful', username: loggedInUsername });
-        } else {
-          res.status(401).json({ error: 'Invalid credentials' });
-        }
-      } else {
-        res.status(401).json({ error: 'Invalid credentials' });
-      }
-    }
-  });
-});
 // Serve static files from the photopath directory
 
 app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
@@ -695,20 +679,53 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE an AcGroupMaster entry
-  app.delete('/api/acgroups/:acGroupCode', (req, res) => {
+  app.delete('/api/acgroups/:acGroupCode', async (req, res) => {
     const { acGroupCode } = req.params;
-    const query = `DELETE FROM AcGroupMaster WHERE AcGroupCode='${acGroupCode}'`;
-    
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'AcGroupMaster entry deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM AcGroupMaster WHERE AcGroupCode='${acGroupCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'AcGroupMaster deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
-
+  
 
   // For DeptMaster ---------------
 
@@ -751,110 +768,158 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       });
   });
 
-  app.delete('/api/items/:deptCode', (req,res)=>{
-      const {deptCode} = req.params;
-      const query = `DELETE FROM DeptMaster WHERE DeptCode=${deptCode}`;
-      sql.query(query, (err) => {
-          if (err) {
-            console.log('Error:', err);
-            res.status(500).json({ error: 'Internal server error' });
-          } else {
-            res.json({ message: 'Item deleted successfully' });
-          }
-        });
-  });
-
-  // For DeptMasterX
-
-  // GET endpoint to fetch all DeptMasterX entries
-  app.get('/api/deptmastersX', (req, res) => {
-    const query = 'SELECT * FROM DeptMasterX';
-    sql.query(query, (err, result) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json(result.recordset);
-      }
-    });
-  });
-
-  // POST endpoint to create a new DeptMasterX entry
-  app.post('/api/deptmastersX', (req, res) => {
-    const {
-      DeptCode,
-      DeptName,
-      DeptNameENG,
-      CompCode,
-      Flag,
-    } = req.body;
-    const query = `
-      INSERT INTO DeptMasterX (DeptCode, DeptName, DeptNameENG, CompCode, Flag)
-      VALUES ('${DeptCode}', N'${DeptName}', N'${DeptNameENG}', '${CompCode}', N'${Flag}');
-    `;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'DeptMasterX created successfully' });
-      }
-    });
-  });
-
-  // PUT endpoint to update an existing DeptMasterX entry
-  app.put('/api/deptmastersX/:deptCode', (req, res) => {
+  app.delete('/api/items/:deptCode', async (req, res) => {
     const { deptCode } = req.params;
-    const {
-      DeptName,
-      DeptNameENG,
-      CompCode,
-      Flag,
-    } = req.body;
-    const query = `
-      UPDATE DeptMasterX
-      SET DeptName=N'${DeptName}', DeptNameENG=N'${DeptNameENG}', CompCode='${CompCode}', Flag='${Flag}'
-      WHERE DeptCode='${deptCode}';
-    `;
-    sql.query(query, (err, result) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        if (result.rowsAffected && result.rowsAffected[0] > 0) {
-          res.json({
-            message: 'DeptMasterX updated successfully',
-            DeptCode: deptCode,
-            DeptName,
-            DeptNameENG,
-            CompCode,
-            Flag,
-          });
-        } else {
-          res.status(404).json({ error: 'Record not found' });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
         }
-      }
-    });
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM DeptMaster WHERE DeptCode='${deptCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'DeptMaster deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
 
-  // DELETE endpoint to delete a DeptMasterX entry
-  app.delete('/api/deptmastersX/:deptCode', (req, res) => {
-    const { deptCode } = req.params;
-    const query = `DELETE FROM DeptMasterX WHERE DeptCode='${deptCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'DeptMasterX deleted successfully' });
-      }
-    });
-  });
+  // app.delete('/api/items/:deptCode',(req,res)=>{
+  //     const {deptCode} = req.params;
+  //     const query = `DELETE FROM DeptMaster WHERE DeptCode=${deptCode}`;
+  //     sql.query(query, (err) => {
+  //         if (err) {
+  //           console.log('Error:', err);
+  //           res.status(500).json({ error: 'Internal server error' });
+  //         } else {
+  //           res.json({ message: 'Item deleted successfully' });
+  //         }
+  //       });
+  // });
+
+  // // For DeptMasterX
+
+  // // GET endpoint to fetch all DeptMasterX entries
+  // app.get('/api/deptmastersX', (req, res) => {
+  //   const query = 'SELECT * FROM DeptMasterX';
+  //   sql.query(query, (err, result) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json(result.recordset);
+  //     }
+  //   });
+  // });
+
+  // // POST endpoint to create a new DeptMasterX entry
+  // app.post('/api/deptmastersX', (req, res) => {
+  //   const {
+  //     DeptCode,
+  //     DeptName,
+  //     DeptNameENG,
+  //     CompCode,
+  //     Flag,
+  //   } = req.body;
+  //   const query = `
+  //     INSERT INTO DeptMasterX (DeptCode, DeptName, DeptNameENG, CompCode, Flag)
+  //     VALUES ('${DeptCode}', N'${DeptName}', N'${DeptNameENG}', '${CompCode}', N'${Flag}');
+  //   `;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'DeptMasterX created successfully' });
+  //     }
+  //   });
+  // });
+
+  // // PUT endpoint to update an existing DeptMasterX entry
+  // app.put('/api/deptmastersX/:deptCode', (req, res) => {
+  //   const { deptCode } = req.params;
+  //   const {
+  //     DeptName,
+  //     DeptNameENG,
+  //     CompCode,
+  //     Flag,
+  //   } = req.body;
+  //   const query = `
+  //     UPDATE DeptMasterX
+  //     SET DeptName=N'${DeptName}', DeptNameENG=N'${DeptNameENG}', CompCode='${CompCode}', Flag='${Flag}'
+  //     WHERE DeptCode='${deptCode}';
+  //   `;
+  //   sql.query(query, (err, result) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       if (result.rowsAffected && result.rowsAffected[0] > 0) {
+  //         res.json({
+  //           message: 'DeptMasterX updated successfully',
+  //           DeptCode: deptCode,
+  //           DeptName,
+  //           DeptNameENG,
+  //           CompCode,
+  //           Flag,
+  //         });
+  //       } else {
+  //         res.status(404).json({ error: 'Record not found' });
+  //       }
+  //     }
+  //   });
+  // });
+
+  // // DELETE endpoint to delete a DeptMasterX entry
+  // app.delete('/api/deptmastersX/:deptCode', (req, res) => {
+  //   const { deptCode } = req.params;
+  //   const query = `DELETE FROM DeptMasterX WHERE DeptCode='${deptCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'DeptMasterX deleted successfully' });
+  //     }
+  //   });
+  // });
 
   //For  designations
 
   app.get('/api/designations', (req, res) => {
-    const query = 'SELECT * FROM DesignationMaster';
+    const query = 'SELECT * FROM DesignationMaster ORDER BY DesigCode';
     sql.query(query, (err, result) => {
       if (err) {
         console.log('Error:', err);
@@ -920,20 +985,67 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
     });
   });
-
-  app.delete('/api/designations/:desigCode', (req, res) => {
+  app.delete('/api/designations/:desigCode', async (req, res) => {
     const { desigCode } = req.params;
-    const query = `DELETE FROM DesignationMaster WHERE DesigCode='${desigCode}'`;
-
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Designation deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM DesignationMaster WHERE DesigCode='${desigCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Designation deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+
+  // app.delete('/api/designations/:desigCode', (req, res) => {
+  //   const { desigCode } = req.params;
+  //   const query = `DELETE FROM DesignationMaster WHERE DesigCode='${desigCode}'`;
+
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Designation deleted successfully' });
+  //     }
+  //   });
+  // });
 
   // For DistrictMaster ----------
 
@@ -993,18 +1105,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         });
   });
 
-  app.delete('/api/DeleteDistrictMaster/:DistrictCode', (req,res)=>{
-      const {DistrictCode} = req.params;
-      const query = `DELETE FROM DistrictMaster WHERE DistrictCode=${DistrictCode}`;
-      sql.query(query, (err) => {
-          if (err) {
-            console.log('Error:', err);
-            res.status(500).json({ error: 'Internal server error' });
+  app.delete('/api/DeleteDistrictMaster/:DistrictCode', async (req, res) => {
+    const { DistrictCode } = req.params;
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM DistrictMaster WHERE DistrictCode='${DistrictCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'District deleted successfully' });
+              }
+            });
           } else {
-            res.json({ message: 'Item deleted successfully' });
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
           }
-        });
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/DeleteDistrictMaster/:DistrictCode', (req,res)=>{
+  //     const {DistrictCode} = req.params;
+  //     const query = `DELETE FROM DistrictMaster WHERE DistrictCode=${DistrictCode}`;
+  //     sql.query(query, (err) => {
+  //         if (err) {
+  //           console.log('Error:', err);
+  //           res.status(500).json({ error: 'Internal server error' });
+  //         } else {
+  //           res.json({ message: 'Item deleted successfully' });
+  //         }
+  //       });
+  // });
 
   // For GSTRate
   // API to get all GSTRates
@@ -1071,18 +1230,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // API to delete a GSTRate
-  app.delete('/api/gstrates/:gstrateId', (req, res) => {
+  app.delete('/api/gstrates/:gstrateId', async (req, res) => {
     const { gstrateId } = req.params;
-    const query = `DELETE FROM GSTRatesMaster WHERE GSTRateCode='${gstrateId}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'GSTRate deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM GSTRatesMaster WHERE GSTRateCode='${gstrateId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'GSTRate deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/gstrates/:gstrateId', (req, res) => {
+  //   const { gstrateId } = req.params;
+  //   const query = `DELETE FROM GSTRatesMaster WHERE GSTRateCode='${gstrateId}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'GSTRate deleted successfully' });
+  //     }
+  //   });
+  // });
 
 
   //For itemcategories
@@ -1154,18 +1360,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  app.delete('/api/itemcategories/:itemCategoryId', (req, res) => {
+  app.delete('/api/itemcategories/:itemCategoryId', async (req, res) => {
     const { itemCategoryId } = req.params;
-    const query = `DELETE FROM ItemCategoryMaster WHERE ItemCategoryCode='${itemCategoryId}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Item category deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM ItemCategoryMaster WHERE ItemCategoryCode='${itemCategoryId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Item category deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/itemcategories/:itemCategoryId', (req, res) => {
+  //   const { itemCategoryId } = req.params;
+  //   const query = `DELETE FROM ItemCategoryMaster WHERE ItemCategoryCode='${itemCategoryId}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Item category deleted successfully' });
+  //     }
+  //   });
+  // });
 
   // For ItemGroupMaster
   app.get('/api/item-groups', (req, res) => {
@@ -1225,19 +1478,67 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         }
       });
     });
-      
-    app.delete('/api/item-groups/:ItemGroupCode', (req, res) => {
+
+    app.delete('/api/item-groups/:ItemGroupCode', async (req, res) => {
       const { ItemGroupCode } = req.params;
-      const query = `DELETE FROM ItemGroupMaster WHERE ItemGroupCode=${ItemGroupCode}`;
-      sql.query(query, (err) => {
-        if (err) {
-          console.log('Error:', err);
-          res.status(500).json({ error: 'Internal server error' });
-        } else {
-          res.json({ message: 'Item group deleted successfully' });
-        }
-      });
+      const UserName = req.headers['username'];
+    
+      try {
+        // Fetch user permissions from the database based on the user making the request
+        const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+    
+        sql.query(userPermissionsQuery, async (userErr, userResults) => {
+          if (userErr) {
+            console.log('Error fetching user permissions:', userErr);
+            res.status(500).json({ error: 'Internal server error' });
+            return;
+          }
+    
+          // Check if user results are not empty
+          if (userResults.recordset && userResults.recordset.length > 0) {
+            // Check if user has permission to delete entries
+            const { AllowMasterDelete } = userResults.recordset[0];
+    
+            if (AllowMasterDelete === 1) {
+              // The user has permission to delete entries
+              const deleteQuery = `DELETE FROM ItemGroupMaster WHERE ItemGroupCode='${ItemGroupCode}'`;
+    
+              sql.query(deleteQuery, (deleteErr) => {
+                if (deleteErr) {
+                  console.log('Error deleting entry:', deleteErr);
+                  res.status(500).json({ error: 'Internal server error' });
+                } else {
+                  res.json({ message: 'Item group deleted successfully' });
+                }
+              });
+            } else {
+              // User does not have permission to delete entries
+              res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+            }
+          } else {
+            // User not found in the database
+            res.status(404).json({ error: 'User not found.' });
+          }
+        });
+      } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     });
+    
+      
+    // app.delete('/api/item-groups/:ItemGroupCode', (req, res) => {
+    //   const { ItemGroupCode } = req.params;
+    //   const query = `DELETE FROM ItemGroupMaster WHERE ItemGroupCode=${ItemGroupCode}`;
+    //   sql.query(query, (err) => {
+    //     if (err) {
+    //       console.log('Error:', err);
+    //       res.status(500).json({ error: 'Internal server error' });
+    //     } else {
+    //       res.json({ message: 'Item group deleted successfully' });
+    //     }
+    //   });
+    // });
     
 
 
@@ -1362,18 +1663,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
   });
     
-  app.delete('/api/items-master/:itemId', (req, res) => {
-  const { itemId } = req.params;
-  const query = `DELETE FROM ItemMaster WHERE ItCode=${itemId}`;
-  sql.query(query, (err) => {
-      if (err) {
-      console.log('Error:', err);
+  // app.delete('/api/items-master/:itemId', (req, res) => {
+  // const { itemId } = req.params;
+  // const query = `DELETE FROM ItemMaster WHERE ItCode=${itemId}`;
+  // sql.query(query, (err) => {
+  //     if (err) {
+  //     console.log('Error:', err);
+  //     res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //     res.json({ message: 'Item deleted successfully' });
+  //     }
+  // });
+  // });
+
+  app.delete('/api/items-master/:itemId', async (req, res) => {
+    const { itemId } = req.params;
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM ItemMaster WHERE ItCode='${itemId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Item deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
       res.status(500).json({ error: 'Internal server error' });
-      } else {
-      res.json({ message: 'Item deleted successfully' });
-      }
+    }
   });
-  });
+  
     
   //For ItemSubGroupMaster
 
@@ -1438,19 +1787,67 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  app.delete('/api/itemsubgroups/:itemSubGroupCode', (req, res) => {
+  // app.delete('/api/itemsubgroups/:itemSubGroupCode', (req, res) => {
+  //   const { itemSubGroupCode } = req.params;
+  //   // Replace with your SQL DELETE query
+  //   const query = `DELETE FROM ItemSubGroupMaster WHERE ItemSubGroupCode='${itemSubGroupCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.error('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'ItemSubGroup deleted successfully' });
+  //     }
+  //   });
+  // });
+
+  app.delete('/api/itemsubgroups/:itemSubGroupCode', async (req, res) => {
     const { itemSubGroupCode } = req.params;
-    // Replace with your SQL DELETE query
-    const query = `DELETE FROM ItemSubGroupMaster WHERE ItemSubGroupCode='${itemSubGroupCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.error('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'ItemSubGroup deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.error('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM ItemSubGroupMaster WHERE ItemSubGroupCode='${itemSubGroupCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.error('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'ItemSubGroup deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
 
 
   // For LedgerMaster
@@ -1631,18 +2028,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
     
     // Delete a LedgerMaster entry by AcCode
-    app.delete('/api/ledger-master/:AcCode', (req, res) => {
+    // app.delete('/api/ledger-master/:AcCode', (req, res) => {
+    //   const { AcCode } = req.params;
+    //   const query = `DELETE FROM LedgerMaster WHERE AcCode='${AcCode}'`;
+    //   sql.query(query, (err) => {
+    //     if (err) {
+    //       console.log('Error:', err);
+    //       res.status(500).json({ error: 'Internal server error' });
+    //     } else {
+    //       res.json({ message: 'Ledger entry deleted successfully' });
+    //     }
+    //   });
+    // });
+
+    app.delete('/api/ledger-master/:AcCode', async (req, res) => {
       const { AcCode } = req.params;
-      const query = `DELETE FROM LedgerMaster WHERE AcCode='${AcCode}'`;
-      sql.query(query, (err) => {
-        if (err) {
-          console.log('Error:', err);
-          res.status(500).json({ error: 'Internal server error' });
-        } else {
-          res.json({ message: 'Ledger entry deleted successfully' });
-        }
-      });
+      const UserName = req.headers['username'];
+    
+      try {
+        // Fetch user permissions from the database based on the user making the request
+        const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+    
+        sql.query(userPermissionsQuery, async (userErr, userResults) => {
+          if (userErr) {
+            console.log('Error fetching user permissions:', userErr);
+            res.status(500).json({ error: 'Internal server error' });
+            return;
+          }
+    
+          // Check if user results are not empty
+          if (userResults.recordset && userResults.recordset.length > 0) {
+            // Check if user has permission to delete entries
+            const { AllowMasterDelete } = userResults.recordset[0];
+    
+            if (AllowMasterDelete === 1) {
+              // The user has permission to delete entries
+              const deleteQuery = `DELETE FROM LedgerMaster WHERE AcCode='${AcCode}'`;
+    
+              sql.query(deleteQuery, (deleteErr) => {
+                if (deleteErr) {
+                  console.log('Error deleting entry:', deleteErr);
+                  res.status(500).json({ error: 'Internal server error' });
+                } else {
+                  res.json({ message: 'Ledger entry deleted successfully' });
+                }
+              });
+            } else {
+              // User does not have permission to delete entries
+              res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+            }
+          } else {
+            // User not found in the database
+            res.status(404).json({ error: 'User not found.' });
+          }
+        });
+      } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     });
+    
 
 
 
@@ -1706,20 +2151,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE endpoint to delete a location
-  app.delete('/api/locations/:locationCode', (req, res) => {
+  // app.delete('/api/locations/:locationCode', (req, res) => {
+  //   const { locationCode } = req.params;
+  //   const query = `DELETE FROM LocationMaster WHERE LocationCode='${locationCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Location deleted successfully' });
+  //     }
+  //   });
+  // });
+
+  app.delete('/api/locations/:locationCode', async (req, res) => {
     const { locationCode } = req.params;
-    const query = `DELETE FROM LocationMaster WHERE LocationCode='${locationCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Location deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM LocationMaster WHERE LocationCode='${locationCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Location deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
-
-
+  
 
   // for narration 
 
@@ -1789,18 +2280,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       });
     });
 
-    app.delete('/api/narrations/:narrationId', (req, res) => {
+    // app.delete('/api/narrations/:narrationId', (req, res) => {
+    //   const { narrationId } = req.params;
+    //   const query = `DELETE FROM NarrationMaster WHERE Srno='${narrationId}'`;
+    //   sql.query(query, (err) => {
+    //     if (err) {
+    //       console.log('Error:', err);
+    //       res.status(500).json({ error: 'Internal server error' });
+    //     } else {
+    //       res.json({ message: 'Narration deleted successfully' });
+    //     }
+    //   });
+    // });
+
+    app.delete('/api/narrations/:narrationId', async (req, res) => {
       const { narrationId } = req.params;
-      const query = `DELETE FROM NarrationMaster WHERE Srno='${narrationId}'`;
-      sql.query(query, (err) => {
-        if (err) {
-          console.log('Error:', err);
-          res.status(500).json({ error: 'Internal server error' });
-        } else {
-          res.json({ message: 'Narration deleted successfully' });
-        }
-      });
+      const UserName = req.headers['username'];
+    
+      try {
+        // Fetch user permissions from the database based on the user making the request
+        const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+    
+        sql.query(userPermissionsQuery, async (userErr, userResults) => {
+          if (userErr) {
+            console.log('Error fetching user permissions:', userErr);
+            res.status(500).json({ error: 'Internal server error' });
+            return;
+          }
+    
+          // Check if user results are not empty
+          if (userResults.recordset && userResults.recordset.length > 0) {
+            // Check if user has permission to delete entries
+            const { AllowMasterDelete } = userResults.recordset[0];
+    
+            if (AllowMasterDelete === 1) {
+              // The user has permission to delete entries
+              const deleteQuery = `DELETE FROM NarrationMaster WHERE Srno='${narrationId}'`;
+    
+              sql.query(deleteQuery, (deleteErr) => {
+                if (deleteErr) {
+                  console.log('Error deleting entry:', deleteErr);
+                  res.status(500).json({ error: 'Internal server error' });
+                } else {
+                  res.json({ message: 'Narration deleted successfully' });
+                }
+              });
+            } else {
+              // User does not have permission to delete entries
+              res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+            }
+          } else {
+            // User not found in the database
+            res.status(404).json({ error: 'User not found.' });
+          }
+        });
+      } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     });
+    
     
 
   // For PackingMaster
@@ -1861,18 +2400,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  app.delete('/api/packing/:packingCode', (req, res) => {
+  // app.delete('/api/packing/:packingCode', (req, res) => {
+  //   const { packingCode } = req.params;
+  //   const query = `DELETE FROM PackingMaster WHERE PackingCode='${packingCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Packing item deleted successfully' });
+  //     }
+  //   });
+  // });
+
+  app.delete('/api/packing/:packingCode', async (req, res) => {
     const { packingCode } = req.params;
-    const query = `DELETE FROM PackingMaster WHERE PackingCode='${packingCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Packing item deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM PackingMaster WHERE PackingCode='${packingCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Packing item deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
     
   // for statemaster 
 
@@ -1934,18 +2521,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // Delete a state by StateCode
-  app.delete('/api/states/:stateCode', (req, res) => {
+  // app.delete('/api/states/:stateCode', (req, res) => {
+  //   const { stateCode } = req.params;
+  //   const query = `DELETE FROM StateMaster WHERE StateCode='${stateCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'State deleted successfully' });
+  //     }
+  //   });
+  // });
+
+  app.delete('/api/states/:stateCode', async (req, res) => {
     const { stateCode } = req.params;
-    const query = `DELETE FROM StateMaster WHERE StateCode='${stateCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'State deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM StateMaster WHERE StateCode='${stateCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'State deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
 
 
   // GET SubLedgerGroupMaster entries
@@ -2017,18 +2652,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE SubLedgerGroupMaster entry
-  app.delete('/api/subledgergroups/:subledgergroupId', (req, res) => {
+  // app.delete('/api/subledgergroups/:subledgergroupId', (req, res) => {
+  //   const { subledgergroupId } = req.params;
+  //   const query = `DELETE FROM SubLedgerGroupMaster WHERE SubLedgerGroupCode='${subledgergroupId}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'SubLedgerGroup deleted successfully' });
+  //     }
+  //   });
+  // });
+
+  app.delete('/api/subledgergroups/:subledgergroupId', async (req, res) => {
     const { subledgergroupId } = req.params;
-    const query = `DELETE FROM SubLedgerGroupMaster WHERE SubLedgerGroupCode='${subledgergroupId}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'SubLedgerGroup deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM SubLedgerGroupMaster WHERE SubLedgerGroupCode='${subledgergroupId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'SubLedgerGroup deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
 
   //subledgermaster
 
@@ -2147,20 +2830,68 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // Delete a SubLedgerMaster by SubAcCode
-  app.delete('/api/subledgerMaster/:SubAcCode', (req, res) => {
+  // app.delete('/api/subledgerMaster/:SubAcCode', (req, res) => {
+  //   const { SubAcCode } = req.params;
+
+  //   const query = `DELETE FROM SubLedgerMaster WHERE SubAcCode='${SubAcCode}'`;
+
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'SubLedgerMaster deleted successfully' });
+  //     }
+  //   });
+  // });
+
+  app.delete('/api/subledgerMaster/:SubAcCode', async (req, res) => {
     const { SubAcCode } = req.params;
-
-    const query = `DELETE FROM SubLedgerMaster WHERE SubAcCode='${SubAcCode}'`;
-
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'SubLedgerMaster deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM SubLedgerMaster WHERE SubAcCode='${SubAcCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'SubLedgerMaster deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
 
 
   //taluka master 
@@ -2239,18 +2970,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // Delete a Taluka
-  app.delete('/api/talukas/:talukaId', (req, res) => {
+  app.delete('/api/talukas/:talukaId', async (req, res) => {
     const { talukaId } = req.params;
-    const query = `DELETE FROM TalukaMaster WHERE TalukaCode='${talukaId}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Taluka deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TalukaMaster WHERE TalukaCode='${talukaId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Taluka deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/talukas/:talukaId', (req, res) => {
+  //   const { talukaId } = req.params;
+  //   const query = `DELETE FROM TalukaMaster WHERE TalukaCode='${talukaId}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Taluka deleted successfully' });
+  //     }
+  //   });
+  // });
 
   //TranGroupMaster entries
   // GET all TranGroupMaster entries
@@ -2338,18 +3116,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a TranGroupMaster entry by AcGroupCode
-  app.delete('/api/trangroups/:acGroupCode', (req, res) => {
+  app.delete('/api/trangroups/:acGroupCode', async (req, res) => {
     const { acGroupCode } = req.params;
-    const query = `DELETE FROM TranGroupMaster WHERE AcGroupCode='${acGroupCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'TranGroup deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranGroupMaster WHERE AcGroupCode='${acGroupCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'TranGroup deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/trangroups/:acGroupCode', (req, res) => {
+  //   const { acGroupCode } = req.params;
+  //   const query = `DELETE FROM TranGroupMaster WHERE AcGroupCode='${acGroupCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'TranGroup deleted successfully' });
+  //     }
+  //   });
+  // });
 
 
   //TranItMaster entries
@@ -2442,18 +3267,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // Delete a TranItMaster entry
-  app.delete('/api/tranItMaster/:DeptCode/:ItCode', (req, res) => {
-    const {  DeptCode, ItCode  } = req.params;
-    const query = `DELETE FROM TranItMaster WHERE DeptCode='${DeptCode}' AND ItCode='${ItCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.error('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'TranItMaster deleted successfully' });
-      }
-    });
+  app.delete('/api/tranItMaster/:DeptCode/:ItCode', async (req, res) => {
+    const { DeptCode, ItCode } = req.params;
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranItMaster WHERE DeptCode='${DeptCode}' AND ItCode='${ItCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'TranItMaster deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/tranItMaster/:DeptCode/:ItCode', (req, res) => {
+  //   const {  DeptCode, ItCode  } = req.params;
+  //   const query = `DELETE FROM TranItMaster WHERE DeptCode='${DeptCode}' AND ItCode='${ItCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.error('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'TranItMaster deleted successfully' });
+  //     }
+  //   });
+  // });
 
   //TranLedgerMaster
   // GET all TranLedgerMaster entries
@@ -2541,18 +3413,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a TranLedgerMaster entry
-  app.delete('/api/tranledgers/:AcCode', (req, res) => {
+  app.delete('/api/tranledgers/:AcCode', async (req, res) => {
     const { AcCode } = req.params;
-    const query = `DELETE FROM TranLedgerMaster WHERE AcCode='${AcCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'TranLedger deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranLedgerMaster WHERE AcCode='${AcCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'TranLedger deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/tranledgers/:AcCode', (req, res) => {
+  //   const { AcCode } = req.params;
+  //   const query = `DELETE FROM TranLedgerMaster WHERE AcCode='${AcCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'TranLedger deleted successfully' });
+  //     }
+  //   });
+  // });
 
 
   //TranLedgerMasterTemp
@@ -2642,18 +3561,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // Delete a ledger entry
-  app.delete('/api/ledgerentries/:acCode', (req, res) => {
+  app.delete('/api/ledgerentries/:acCode', async (req, res) => {
     const { acCode } = req.params;
-    const query = `DELETE FROM TranLedgerMasterTemp WHERE AcCode=${acCode}`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Ledger entry deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranLedgerMasterTemp WHERE AcCode=${acCode}`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Ledger entry deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/ledgerentries/:acCode', (req, res) => {
+  //   const { acCode } = req.params;
+  //   const query = `DELETE FROM TranLedgerMasterTemp WHERE AcCode=${acCode}`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Ledger entry deleted successfully' });
+  //     }
+  //   });
+  // });
 
   //TranSubLedger entries
   // Get all TranSubLedger entries
@@ -2746,18 +3712,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // Delete a TranSubLedger entry
-  app.delete('/api/tranSubLedgers/:acCode', (req, res) => {
+  app.delete('/api/tranSubLedgers/:acCode', async (req, res) => {
     const { acCode } = req.params;
-    const query = `DELETE FROM TranSubLedgerMaster WHERE AcCode='${acCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'TranSubLedger deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranSubLedgerMaster WHERE AcCode='${acCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'TranSubLedger deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/tranSubLedgers/:acCode', (req, res) => {
+  //   const { acCode } = req.params;
+  //   const query = `DELETE FROM TranSubLedgerMaster WHERE AcCode='${acCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'TranSubLedger deleted successfully' });
+  //     }
+  //   });
+  // });
 
   //TranSubLedgerMasterTemp
   // GET all TranSubLedgerMasterTemp entries
@@ -2874,18 +3887,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a TranSubLedgerMasterTemp entry by ID
-  app.delete('/api/entries/:entryId', (req, res) => {
+  app.delete('/api/entries/:entryId', async (req, res) => {
     const { entryId } = req.params;
-    const query = `DELETE FROM TranSubLedgerMasterTemp WHERE AcCode='${entryId}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'TranSubLedgerMasterTemp entry deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranSubLedgerMasterTemp WHERE AcCode='${entryId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'TranSubLedgerMasterTemp entry deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/entries/:entryId', (req, res) => {
+  //   const { entryId } = req.params;
+  //   const query = `DELETE FROM TranSubLedgerMasterTemp WHERE AcCode='${entryId}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'TranSubLedgerMasterTemp entry deleted successfully' });
+  //     }
+  //   });
+  // });
 
   // For UnitMaster------------------------------------------------------------------------------------
 
@@ -2950,18 +4010,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a unit
-  app.delete('/api/units/:unitId', (req, res) => {
+  app.delete('/api/units/:unitId', async (req, res) => {
     const { unitId } = req.params;
-    const query = `DELETE FROM UnitMaster WHERE UnitId='${unitId}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Unit deleted successfully' });
-      }
-    });
-  }); 
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM UnitMaster WHERE UnitId='${unitId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Unit deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // app.delete('/api/units/:unitId', (req, res) => {
+  //   const { unitId } = req.params;
+  //   const query = `DELETE FROM UnitMaster WHERE UnitId='${unitId}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Unit deleted successfully' });
+  //     }
+  //   });
+  // }); 
 
   //VibhagMasters
   // GET all VibhagMasters
@@ -3049,18 +4156,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a VibhagMaster by VibhagCode
-  app.delete('/api/vibhags/:vibhagCode', (req, res) => {
+  app.delete('/api/vibhags/:vibhagCode', async (req, res) => {
     const { vibhagCode } = req.params;
-    const query = `DELETE FROM VibhagMaster WHERE VibhagCode='${vibhagCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'VibhagMaster deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM VibhagMaster WHERE VibhagCode='${vibhagCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'VibhagMaster deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/vibhags/:vibhagCode', (req, res) => {
+  //   const { vibhagCode } = req.params;
+  //   const query = `DELETE FROM VibhagMaster WHERE VibhagCode='${vibhagCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'VibhagMaster deleted successfully' });
+  //     }
+  //   });
+  // });
 
 
   //villages  ------------------------------------------------------------------------------------
@@ -3139,18 +4293,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a village by ID
-  app.delete('/api/villages/:villageId', (req, res) => {
+  app.delete('/api/villages/:villageId', async (req, res) => {
     const { villageId } = req.params;
-    const query = `DELETE FROM VillageMaster WHERE VillageCode='${villageId}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Village deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM VillageMaster WHERE VillageCode='${villageId}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Village deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/villages/:villageId', (req, res) => {
+  //   const { villageId } = req.params;
+  //   const query = `DELETE FROM VillageMaster WHERE VillageCode='${villageId}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Village deleted successfully' });
+  //     }
+  //   });
+  // });
 
 
   // For Year Master  ------------------------------------------------------------------------------------
@@ -3194,19 +4395,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  app.delete('/api/year_master/:YearCode', (req,res)=>{
+  app.delete('/api/year_master/:YearCode', async (req, res) => {
     const { YearCode } = req.params;
-    //console.log("Comp Code  ",CompCode);
-    const query = `DELETE FROM YearMaster WHERE YearCode=${YearCode}`;
-    sql.query(query,(err) => {
-        if (err) {
-          console.log('Error:', err);
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
           res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM YearMaster WHERE YearCode=${YearCode}`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Year deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
         } else {
-          res.json({ message: 'Year deleted successfully' });
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
         }
       });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/year_master/:YearCode', (req,res)=>{
+  //   const { YearCode } = req.params;
+  //   //console.log("Comp Code  ",CompCode);
+  //   const query = `DELETE FROM YearMaster WHERE YearCode=${YearCode}`;
+  //   sql.query(query,(err) => {
+  //       if (err) {
+  //         console.log('Error:', err);
+  //         res.status(500).json({ error: 'Internal server error' });
+  //       } else {
+  //         res.json({ message: 'Year deleted successfully' });
+  //       }
+  //     });
+  // });
 
 
   // For CompanyMaster  ------------------------------------------------------------------------------------
@@ -3251,19 +4499,66 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  app.delete('/api/company/:CompCode', (req,res)=>{
+  app.delete('/api/company/:CompCode', async (req, res) => {
     const { CompCode } = req.params;
-    //console.log("Comp Code  ",CompCode);
-    const query = `DELETE FROM CompanyMaster WHERE CompCode=${CompCode}`;
-    sql.query(query,(err) => {
-        if (err) {
-          console.log('Error:', err);
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
           res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM CompanyMaster WHERE CompCode=${CompCode}`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Company deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
         } else {
-          res.json({ message: 'Company deleted successfully' });
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
         }
       });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+
+  // app.delete('/api/company/:CompCode', (req,res)=>{
+  //   const { CompCode } = req.params;
+  //   //console.log("Comp Code  ",CompCode);
+  //   const query = `DELETE FROM CompanyMaster WHERE CompCode=${CompCode}`;
+  //   sql.query(query,(err) => {
+  //       if (err) {
+  //         console.log('Error:', err);
+  //         res.status(500).json({ error: 'Internal server error' });
+  //       } else {
+  //         res.json({ message: 'Company deleted successfully' });
+  //       }
+  //     });
+  // });
 
 
   // TranEntry API    ------------------------------------------------------------------------------------
@@ -3541,32 +4836,127 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
+  app.delete('/api/tranentries/:entryNo/:flag', async (req, res) => {
     const { entryNo, flag } = req.params;
-    const query = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'TranEntry deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'TranEntry deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
+  //   const { entryNo, flag } = req.params;
+  //   const query = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'TranEntry deleted successfully' });
+  //     }
+  //   });
+  // });
 
-  app.delete('/api/Newtranentries/:uniqueCode/:UserID', (req, res) => {
-    const { uniqueCode , UserID} = req.params;
-    const query = `DELETE FROM TranEntryTempSub WHERE COMPUTERID=${uniqueCode} AND UserID=${UserID}`;
-    console.log("print",uniqueCode);
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'BillSubTemp deleted successfully' });
-      }
-    });
+  app.delete('/api/Newtranentries/:uniqueCode/:UserID', async (req, res) => {
+    const { uniqueCode, UserID } = req.params;
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM TranEntryTempSub WHERE COMPUTERID='${uniqueCode}' AND UserID='${UserID}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'BillSubTemp deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+
+  // app.delete('/api/Newtranentries/:uniqueCode/:UserID', (req, res) => {
+  //   const { uniqueCode , UserID} = req.params;
+  //   const query = `DELETE FROM TranEntryTempSub WHERE COMPUTERID=${uniqueCode} AND UserID=${UserID}`;
+  //   console.log("print",uniqueCode);
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'BillSubTemp deleted successfully' });
+  //     }
+  //   });
+  // });
 
   
   app.post('/api/tranEntry-insertDataAndFlag', (req, res) => {
@@ -3621,108 +5011,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   
 
  //Billsub Entry ------------------------------------------------------------------------------------
-
-  // app.post('/api/SaveBillentries', async (req, res) => {
-  //   const { flag,DeptCode,YearCode,CompCode,trDate, AcCode, BillNo, BillDate, Desc1, Desc2,operation, entryNo,RoundOff,TotNetAmt, TotIGST,TotCGST,TotSGST,GrossTotAmt,UserID} = req.body; 
-  //   // Get the latest max entry number for the given flag
-  //   const getMaxEntryNoQuery = `
-  //     SELECT MAX(ENTRYNO) AS MaxEntryNo
-  //     FROM Billsub
-  //     WHERE Flag = '${flag}'AND DeptCode = '${DeptCode}'AND YearCode = '${YearCode}' AND CompCode = '${CompCode}'`;
-  //   console.log("getMaxEntryNoQuery",getMaxEntryNoQuery);
-  //   const maxEntryNoResult = await sql.query(getMaxEntryNoQuery);
-  //   const maxEntryNo = maxEntryNoResult.recordset[0]?.MaxEntryNo || 0;
-  //   console.log("maxEntryNo",maxEntryNo);
-
-  //   // SQL query to insert data into TranEntry and delete from TranEntryTempSub
-  //   let  query = `
-  //     DELETE TE
-  //     FROM Billsub AS TE
-  //     WHERE TE.EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND TE.Flag = '${flag}' AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode}';
-
-  //     INSERT INTO Billsub (TRDATE, Flag, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2, MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GstRateCode, GstRate, CGstAmt, SGstAmt, IGstAmt, RoundOff, NetAmt, ENTRYNO, YearCode, DeptCode, CompCode, USERID, COMPUTERID)
-  //     SELECT  
-  //     '${trDate}',Flag,${AcCode},ItCode,'${BillNo}','${BillDate}','${Desc1}','${Desc2}', MRP,Qty,Rate,Amount,DiscAmt,TaxableAmt,GstRateCode,GstRate,CGstAmt,SGstAmt,IGstAmt,RoundOff,
-  //      NetAmt,'${operation === 'update' ? entryNo : maxEntryNo + 1}', YearCode,DeptCode,CompCode,USERID,COMPUTERID
-  //     FROM BillsubTemp;
-
-  //     DELETE TETS
-  //     FROM BillsubTemp AS TETS
-  //     WHERE TETS.EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND TETS.Flag = '${flag}'AND TETS.DeptCode = '${DeptCode}' AND TETS.YearCode = '${YearCode}'  AND TETS.CompCode = '${CompCode}';
-      
-  //     delete from billentry where EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}'  AND CompCode = '${CompCode}';
-  //       INSERT INTO BillEntry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, billno, billdate, TaxableAmt, CgstAmt, SgstAmt, IgstAmt, RoundOff, NetAmt)
-  //       VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}', '${AcCode}', '${AcCode}', '${BillNo}',' ${BillDate}', '${GrossTotAmt}','${TotCGST}', '${TotSGST}','${TotIGST}','${RoundOff}', '${TotNetAmt}');`
-      // if (flag === 'S'|| flag === 'PR' ) {
-      // // Additional code to run when flag is 'P' or 'S'
-      // query += `
-      // DELETE FROM Tranentry 
-      // WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
-
-      // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
-      // VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}',15, '${AcCode}','${TotNetAmt}',0);
-
-
-      // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
-      // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 4,0,'${GrossTotAmt}',0);
-
-
-      // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
-      // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 7,0,'${TotCGST}',0);
-
-
-      // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
-      // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 8,0,'${TotSGST}',0);
-
-
-      // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
-      // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 9,0,'${TotIGST}',0);
-
-
-      // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode,DrAmt, CrAmt,DrAmt) 
-      // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 12,0,'${RoundOff < 0 ? -RoundOff : 0}','${RoundOff > 0 ? RoundOff : 0}');
-      // `;
-      // }
-    // if (flag === 'P' || flag === 'SR' ) {
-    // // Additional code to run when flag is 'P' or 'S'
-    // query += `
-    // DELETE FROM Tranentry 
-    // WHERE EntryNo = '${operation === 'update' ? entryNo : maxEntryNo + 1}' AND Flag = '${flag}' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${CompCode}';
-    
-    // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt,DrAmt)
-    // VALUES ('${CompCode}', '${DeptCode}', '${YearCode}', '${UserID}', '${flag}', '${operation === 'update' ? entryNo : maxEntryNo + 1}', '${trDate}', 16,'${AcCode}','${TotNetAmt}',0);
-
-    
-    // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
-    // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 3,0,'${GrossTotAmt}',0);
-
-    
-    // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
-    // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 7,0,'${TotCGST}',0);
-
-    
-    // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
-    // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 8,0,'${TotSGST}',0);
-
-    
-    // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, DrAmt,CrAmt)
-    // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 9,0,'${TotIGST}',0);
-
-    
-    // INSERT INTO Tranentry (CompCode, Deptcode, YearCode, UserId, flag, entryno, trdate, accode, subaccode, CrAmt, DrAmt)
-    // VALUES ('${CompCode}','${DeptCode}', '${YearCode}', '${UserID}', '${flag}','${operation === 'update' ? entryNo : maxEntryNo + 1}','${trDate}', 12,0,'${RoundOff < 0 ? -RoundOff : 0}','${RoundOff > 0 ? RoundOff : 0}');
-    // `;
-    // }     
-
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       res.json({ message: 'Data saved and deleted successfully' });
-  //     }
-  //   });
-  // });
 
   app.post('/api/SaveBillentries', async (req, res) => {
     const { flag,DeptCode,YearCode,CompCode,trDate, AcCode, BillNo, BillDate, Desc1, Desc2,operation, entryNo,RoundOff,TotNetAmt, TotIGST,TotCGST,TotSGST,GrossTotAmt,UserID} = req.body; 
@@ -3824,22 +5112,74 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     });
   });
 
-  app.delete('/api/NewSelltries/:entryNo/:flag', (req, res) => {
+  app.delete('/api/NewSelltries/:entryNo/:flag', async (req, res) => {
     const { entryNo, flag } = req.params;
-    const query = `DELETE FROM BillSub  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
-                    DELETE FROM BillEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
-                    DELETE FROM TranEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';`;
-
-    console.log("print",entryNo, flag);
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'BillSubTemp deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `
+              DELETE FROM BillSub  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+              DELETE FROM BillEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+              DELETE FROM TranEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+            `;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Entries deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+
+  // app.delete('/api/NewSelltries/:entryNo/:flag', (req, res) => {
+  //   const { entryNo, flag } = req.params;
+  //   const query = `DELETE FROM BillSub  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+  //                   DELETE FROM BillEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+  //                   DELETE FROM TranEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';`;
+
+  //   console.log("print",entryNo, flag);
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'BillSubTemp deleted successfully' });
+  //     }
+  //   });
+  // });
 
   app.get('/api/distinct-sellentries/:flag/:dept/:year/:company', (req, res) => {
     const flag = req.params.flag;
@@ -4188,18 +5528,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a caste
-  app.delete('/api/caste/:casteCode', (req, res) => {
+  app.delete('/api/caste/:casteCode', async (req, res) => {
     const { casteCode } = req.params;
-    const query = `DELETE FROM CasteMaster WHERE CasteCode='${casteCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Caste deleted successfully' });
-      }
-    });
-  }); 
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM CasteMaster WHERE CasteCode='${casteCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Caste deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // app.delete('/api/caste/:casteCode', (req, res) => {
+  //   const { casteCode } = req.params;
+  //   const query = `DELETE FROM CasteMaster WHERE CasteCode='${casteCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Caste deleted successfully' });
+  //     }
+  //   });
+  // }); 
 
   // For Qualification Master------------------------------------------------------------------------------------
 
@@ -4265,18 +5652,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a Qual
-  app.delete('/api/qual/:QualificationCode', (req, res) => {
+  app.delete('/api/qual/:QualificationCode', async (req, res) => {
     const { QualificationCode } = req.params;
-    const query = `DELETE FROM QualificationMaster WHERE QualificationCode='${QualificationCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Qualification deleted successfully' });
-      }
-    });
-  }); 
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM QualificationMaster WHERE QualificationCode='${QualificationCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Qualification deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // app.delete('/api/qual/:QualificationCode', (req, res) => {
+  //   const { QualificationCode } = req.params;
+  //   const query = `DELETE FROM QualificationMaster WHERE QualificationCode='${QualificationCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Qualification deleted successfully' });
+  //     }
+  //   });
+  // }); 
 
   // For Gang Master------------------------------------------------------------------------------------
 
@@ -4342,18 +5776,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a Gang
-  app.delete('/api/gang/:GangCode', (req, res) => {
+  app.delete('/api/gang/:GangCode', async (req, res) => {
     const { GangCode } = req.params;
-    const query = `DELETE FROM GangMaster WHERE GangCode=${GangCode}`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Gang deleted successfully' });
-      }
-    });
-  }); 
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM GangMaster WHERE GangCode=${GangCode}`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Gang deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // app.delete('/api/gang/:GangCode', (req, res) => {
+  //   const { GangCode } = req.params;
+  //   const query = `DELETE FROM GangMaster WHERE GangCode=${GangCode}`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Gang deleted successfully' });
+  //     }
+  //   });
+  // }); 
 
   // For EmpType Master------------------------------------------------------------------------------------
 
@@ -4416,18 +5897,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
 
   // DELETE a EmpType
-  app.delete('/api/emptype/:EmpTypeCode', (req, res) => {
+  app.delete('/api/emptype/:EmpTypeCode', async (req, res) => {
     const { EmpTypeCode } = req.params;
-    const query = `DELETE FROM EmpTypeMaster WHERE EmpTypeCode=${EmpTypeCode}`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'EmpType deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM EmpTypeMaster WHERE EmpTypeCode=${EmpTypeCode}`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'EmpType deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  // app.delete('/api/emptype/:EmpTypeCode', (req, res) => {
+  //   const { EmpTypeCode } = req.params;
+  //   const query = `DELETE FROM EmpTypeMaster WHERE EmpTypeCode=${EmpTypeCode}`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'EmpType deleted successfully' });
+  //     }
+  //   });
+  // });
 
 //Trai-Balance report ------------------------------------------------------------------------------------
   app.get('/api/trialbalance', (req, res) => {
@@ -5241,22 +6769,73 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
     });
   });
-  
-  app.delete('/api/empFamily/:EmpCode/:FamilyMemberNo', (req, res) => {
+
+  app.delete('/api/empFamily/:EmpCode/:FamilyMemberNo', async (req, res) => {
     const { EmpCode, FamilyMemberNo } = req.params;
-    const query = `
-      DELETE FROM EmpFamilyMemberMaster
-      WHERE EmpCode = ${EmpCode} AND FamilyMemberNo = ${FamilyMemberNo};
-    `;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'EmpFamilyMember deleted successfully' });
-      }
-    });
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `
+              DELETE FROM EmpFamilyMemberMaster
+              WHERE EmpCode = ${EmpCode} AND FamilyMemberNo = ${FamilyMemberNo};
+            `;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'EmpFamilyMember deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
+  
+  
+  // app.delete('/api/empFamily/:EmpCode/:FamilyMemberNo', (req, res) => {
+  //   const { EmpCode, FamilyMemberNo } = req.params;
+  //   const query = `
+  //     DELETE FROM EmpFamilyMemberMaster
+  //     WHERE EmpCode = ${EmpCode} AND FamilyMemberNo = ${FamilyMemberNo};
+  //   `;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'EmpFamilyMember deleted successfully' });
+  //     }
+  //   });
+  // });
   
 
   // For StatusMaster------------------------------------------------------------------------------------
@@ -5319,18 +6898,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   });
   
   // DELETE a Status
-  app.delete('/api/status/:StatusCode', (req, res) => {
+  app.delete('/api/status/:StatusCode', async (req, res) => {
     const { StatusCode } = req.params;
-    const query = `DELETE FROM StatusMaster WHERE StatusCode='${StatusCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Status deleted successfully' });
-      }
-    });
-  }); 
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM StatusMaster WHERE StatusCode='${StatusCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Status deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // app.delete('/api/status/:StatusCode', (req, res) => {
+  //   const { StatusCode } = req.params;
+  //   const query = `DELETE FROM StatusMaster WHERE StatusCode='${StatusCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Status deleted successfully' });
+  //     }
+  //   });
+  // }); 
 
   // for Vehiclemaster 
 // Get all Vehicle master
@@ -5519,18 +7145,65 @@ app.put('/api/vehicle/:VehicleCode', (req, res) => {
 });
 
 // Delete a state by Vehicle
-app.delete('/api/vehicle/:VehicleCode', (req, res) => {
+app.delete('/api/vehicle/:VehicleCode', async (req, res) => {
   const { VehicleCode } = req.params;
-  const query = `DELETE FROM VehicleMaster WHERE VehicleCode=${VehicleCode}`;
-  sql.query(query, (err) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json({ message: 'Vehicle deleted successfully' });
-    }
-  });
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM VehicleMaster WHERE VehicleCode=${VehicleCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'Vehicle deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
+// app.delete('/api/vehicle/:VehicleCode', (req, res) => {
+//   const { VehicleCode } = req.params;
+//   const query = `DELETE FROM VehicleMaster WHERE VehicleCode=${VehicleCode}`;
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Vehicle deleted successfully' });
+//     }
+//   });
+// });
 
 
 
@@ -5627,18 +7300,65 @@ app.put('/api/setting/:SettingCode', (req, res) => {
 });
 
 // Delete a state by SettingCode
-app.delete('/api/setting/:SettingCode', (req, res) => {
+app.delete('/api/setting/:SettingCode', async (req, res) => {
   const { SettingCode } = req.params;
-  const query = `DELETE FROM SettingsMaster WHERE SettingCode=${SettingCode}`;
-  sql.query(query, (err) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json({ message: 'Setting deleted successfully' });
-    }
-  });
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM SettingsMaster WHERE SettingCode=${SettingCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'Setting deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
+// app.delete('/api/setting/:SettingCode', (req, res) => {
+//   const { SettingCode } = req.params;
+//   const query = `DELETE FROM SettingsMaster WHERE SettingCode=${SettingCode}`;
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Setting deleted successfully' });
+//     }
+//   });
+// });
 
 
 // for Productmaster 
@@ -5723,18 +7443,65 @@ app.put('/api/product/:ProductCode', (req, res) => {
 });
 
 // Delete a state by ProductMaster
-app.delete('/api/product/:ProductCode', (req, res) => {
+app.delete('/api/product/:ProductCode', async (req, res) => {
   const { ProductCode } = req.params;
-  const query = `DELETE FROM ProductMaster WHERE ProductCode = ${ProductCode}`;
-  sql.query(query, (err) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json({ message: 'Product deleted successfully' });
-    }
-  });
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM ProductMaster WHERE ProductCode='${ProductCode}'`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'Product deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
+// app.delete('/api/product/:ProductCode', (req, res) => {
+//   const { ProductCode } = req.params;
+//   const query = `DELETE FROM ProductMaster WHERE ProductCode = ${ProductCode}`;
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Product deleted successfully' });
+//     }
+//   });
+// });
 
 
 
@@ -5791,6 +7558,7 @@ app.put('/api/hamaliType/:HamaliTypeCode', (req, res) => {
   WHERE 
     HamaliTypeCode = ${HamaliTypeCode};
 `;
+
 sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
@@ -5812,18 +7580,65 @@ sql.query(query, (err, result) => {
 });
 
 // Delete a state by HamaliType
-app.delete('/api/hamaliType/:HamaliTypeCode', (req, res) => {
+app.delete('/api/hamaliType/:HamaliTypeCode', async (req, res) => {
   const { HamaliTypeCode } = req.params;
-  const query = `DELETE FROM HamaliTypeMaster WHERE HamaliTypeCode=${HamaliTypeCode}`;
-  sql.query(query, (err) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json({ message: 'HamaliType deleted successfully' });
-    }
-  });
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM HamaliTypeMaster WHERE HamaliTypeCode=${HamaliTypeCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'HamaliType deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
+// app.delete('/api/hamaliType/:HamaliTypeCode', (req, res) => {
+//   const { HamaliTypeCode } = req.params;
+//   const query = `DELETE FROM HamaliTypeMaster WHERE HamaliTypeCode=${HamaliTypeCode}`;
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'HamaliType deleted successfully' });
+//     }
+//   });
+// });
 
 // Get all Bankmaster
 app.get('/api/bankmaster', (req, res) => {
@@ -5886,16 +7701,62 @@ app.put('/api/PutBankMaster/:bankCode', (req, res) => {
   });
 });
 
-app.delete('/api/DeleteBankMaster/:bankCode', (req, res) => {
+app.delete('/api/DeleteBankMaster/:bankCode', async (req, res) => {
   const { bankCode } = req.params;
-  const query = `DELETE FROM BankMaster WHERE BankCode=${bankCode}`;
-  sql.query(query, (err) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json({ message: 'HamaliType deleted successfully' });
-    }
-  });
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM BankMaster WHERE BankCode=${bankCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'Bank deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
+// app.delete('/api/DeleteBankMaster/:bankCode', (req, res) => {
+//   const { bankCode } = req.params;
+//   const query = `DELETE FROM BankMaster WHERE BankCode=${bankCode}`;
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'HamaliType deleted successfully' });
+//     }
+//   });
+// });
