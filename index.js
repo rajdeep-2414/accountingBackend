@@ -40,22 +40,22 @@
   const path = require('path');
   const multer = require('multer');
   const AWS = require('aws-sdk');
-  // const { v4: uuidv4 } = require('uuid');
-  // const { PutObjectCommand, S3Client } = require('@aws-sdk/client-s3');
-  // const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-  // const session = require('express-session');
-  // const cookieParser = require('cookie-parser');
+  const { v4: uuidv4 } = require('uuid');
+  const { PutObjectCommand, S3Client } = require('@aws-sdk/client-s3');
+  const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+  const session = require('express-session');
+  const cookieParser = require('cookie-parser');
 
 
   const app = express();
   app.use(bodyParser.json());
   app.use(cors());
-  // app.use(cookieParser());
-  // app.use(session({
-  //   secret: 'abcdabcd',
-  //   resave: false,
-  //   saveUninitialized: true,
-  // }));
+  app.use(cookieParser());
+  app.use(session({
+    secret: 'abcdabcd',
+    resave: false,
+    saveUninitialized: true,
+  }));
 
 // Database configuration
 const dbConfig = {
@@ -6428,19 +6428,65 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     }
   });
 
-  
-  app.delete('/api/employee/:EmpCode', (req, res) => {
+  app.delete('/api/employee/:EmpCode', async (req, res) => {
     const { EmpCode } = req.params;
-    const query = `DELETE FROM EmployeeMaster WHERE EmpCode='${EmpCode}'`;
-    sql.query(query, (err) => {
-      if (err) {
-        console.log('Error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-      } else {
-        res.json({ message: 'Employee deleted successfully' });
-      }
-    });
-  }); 
+    const UserName = req.headers['username'];
+  
+    try {
+      // Fetch user permissions from the database based on the user making the request
+      const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+  
+      sql.query(userPermissionsQuery, async (userErr, userResults) => {
+        if (userErr) {
+          console.log('Error fetching user permissions:', userErr);
+          res.status(500).json({ error: 'Internal server error' });
+          return;
+        }
+  
+        // Check if user results are not empty
+        if (userResults.recordset && userResults.recordset.length > 0) {
+          // Check if user has permission to delete entries
+          const { AllowMasterDelete } = userResults.recordset[0];
+  
+          if (AllowMasterDelete === 1) {
+            // The user has permission to delete entries
+            const deleteQuery = `DELETE FROM EmployeeMaster WHERE EmpCode='${EmpCode}'`;
+  
+            sql.query(deleteQuery, (deleteErr) => {
+              if (deleteErr) {
+                console.log('Error deleting entry:', deleteErr);
+                res.status(500).json({ error: 'Internal server error' });
+              } else {
+                res.json({ message: 'Employee deleted successfully' });
+              }
+            });
+          } else {
+            // User does not have permission to delete entries
+            res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+          }
+        } else {
+          // User not found in the database
+          res.status(404).json({ error: 'User not found.' });
+        }
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  // app.delete('/api/employee/:EmpCode', (req, res) => {
+  //   const { EmpCode } = req.params;
+  //   const query = `DELETE FROM EmployeeMaster WHERE EmpCode='${EmpCode}'`;
+  //   sql.query(query, (err) => {
+  //     if (err) {
+  //       console.log('Error:', err);
+  //       res.status(500).json({ error: 'Internal server error' });
+  //     } else {
+  //       res.json({ message: 'Employee deleted successfully' });
+  //     }
+  //   });
+  // }); 
   
   app.put('/api/employee/:EmpCode', async (req, res) => {
     const { EmpCode } = req.params;
@@ -7759,4 +7805,296 @@ app.delete('/api/DeleteBankMaster/:bankCode', async (req, res) => {
 //       res.json({ message: 'HamaliType deleted successfully' });
 //     }
 //   });
+// });
+
+//For MemberMaster
+app.get('/api/member', (req, res) => {
+  const query = 'SELECT * FROM MemberMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.post('/api/member', async (req, res) => {
+  const {
+    MemberNo,
+    MemberName,
+    MemberNameEng,
+    Address1,
+    Address2,
+    VillageCode,
+    Phone,
+    Mobile,
+    Email,
+    Age,
+    MemberTypeCode,
+    ProfessionCode,
+    CasteCode,
+    NomineeName,
+    NomineeAddress1,
+    NomineeVillageCode,
+    NomineeDetails,
+    Director,
+    DateOfMembership,
+    CurrentStatusCode,
+    MemberOtherDetails1,
+    MemberOtherDetails2,
+    TotShares,
+    SharesAmount,
+    KYCCode,
+    PhotoPath,
+    SignPath,
+    CompCode,
+    USERID,
+  } = req.body;
+
+  const query = `
+    INSERT INTO MemberMaster (
+      MemberNo,
+      MemberName,
+      MemberNameEng,
+      Address1,
+      Address2,
+      VillageCode,
+      Phone,
+      Mobile,
+      Email,
+      Age,
+      MemberTypeCode,
+      ProfessionCode,
+      CasteCode,
+      NomineeName,
+      NomineeAddress1,
+      NomineeVillageCode,
+      NomineeDetails,
+      Director,
+      DateOfMembership,
+      CurrentStatusCode,
+      MemberOtherDetails1,
+      MemberOtherDetails2,
+      TotShares,
+      SharesAmount,
+      KYCCode,
+      PhotoPath,
+      SignPath,
+      CompanyCode,
+      USERID
+    )
+    VALUES (
+      '${MemberNo}',
+      N'${MemberName}',
+      N'${MemberNameEng}',
+      N'${Address1}',
+      N'${Address2}',
+      '${VillageCode}',
+      '${Phone}',
+      '${Mobile}',
+      '${Email}',
+      '${Age}',
+      '${MemberTypeCode}',
+      '${ProfessionCode}',
+      '${CasteCode}',
+      N'${NomineeName}',
+      N'${NomineeAddress1}',
+      '${NomineeVillageCode}',
+      N'${NomineeDetails}',
+      N'${Director}',
+      '${DateOfMembership}',
+      '${CurrentStatusCode}',
+      N'${MemberOtherDetails1}',
+      N'${MemberOtherDetails2}',
+      '${TotShares}',
+      '${SharesAmount}',
+      '${KYCCode}',
+      '${PhotoPath}',
+      '${SignPath}',
+      '${CompCode}',
+      '${USERID}'
+    );
+  `;
+
+  try {
+    await sql.query(query); // Assuming you have a method like sql.query for database interaction
+    res.json({ message: 'Success' });
+  } catch (error) {
+    console.log('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/member/:MemberNo', async (req, res) => {
+  const MemberNo = req.params.MemberNo;
+  const {
+    MemberName,
+    MemberNameEng,
+    Address1,
+    Address2,
+    VillageCode,
+    Phone,
+    Mobile,
+    Email,
+    Age,
+    MemberTypeCode,
+    ProfessionCode,
+    CasteCode,
+    NomineeName,
+    NomineeAddress1,
+    NomineeVillageCode,
+    NomineeDetails,
+    Director,
+    DateOfMembership,
+    CurrentStatusCode,
+    MemberOtherDetails1,
+    MemberOtherDetails2,
+    TotShares,
+    SharesAmount,
+    KYCCode,
+    PhotoPath,
+    SignPath,
+    CompCode,
+    USERID,
+  } = req.body;
+
+  // Logging for debugging
+  console.log("Update Member Master - Request Body:", req.body);
+  console.log("Update Member Master - Extracted Variables:", {
+    MemberNo,
+    MemberName,
+    MemberNameEng,
+    Address1,
+    Address2,
+    VillageCode,
+    Phone,
+    Mobile,
+    Email,
+    Age,
+    MemberTypeCode,
+    ProfessionCode,
+    CasteCode,
+    NomineeName,
+    NomineeAddress1,
+    NomineeVillageCode,
+    NomineeDetails,
+    Director,
+    DateOfMembership,
+    CurrentStatusCode,
+    MemberOtherDetails1,
+    MemberOtherDetails2,
+    TotShares,
+    SharesAmount,
+    KYCCode,
+    PhotoPath,
+    SignPath,
+    CompCode,
+    USERID,
+  });
+
+  const query = `
+    UPDATE MemberMaster
+    SET
+      MemberName = N'${MemberName}',
+      MemberNameEng = N'${MemberNameEng}',
+      Address1 = N'${Address1}',
+      Address2 = N'${Address2}',
+      VillageCode = '${VillageCode}',
+      Phone = '${Phone}',
+      Mobile = '${Mobile}',
+      Email = '${Email}',
+      Age = '${Age}',
+      MemberTypeCode = '${MemberTypeCode}',
+      ProfessionCode = '${ProfessionCode}',
+      CasteCode = '${CasteCode}',
+      NomineeName = N'${NomineeName}',
+      NomineeAddress1 = N'${NomineeAddress1}',
+      NomineeVillageCode = '${NomineeVillageCode}',
+      NomineeDetails = N'${NomineeDetails}',
+      Director = N'${Director}',
+      DateOfMembership = '${DateOfMembership}',
+      CurrentStatusCode = '${CurrentStatusCode}',
+      MemberOtherDetails1 = N'${MemberOtherDetails1}',
+      MemberOtherDetails2 = N'${MemberOtherDetails2}',
+      TotShares = '${TotShares}',
+      SharesAmount = '${SharesAmount}',
+      KYCCode = '${KYCCode}',
+      PhotoPath = '${PhotoPath}',
+      SignPath = '${SignPath}',
+      CompanyCode = '${CompCode}',
+      USERID = '${USERID}'
+    WHERE MemberNo = '${MemberNo}';
+  `;
+
+  try {
+    await sql.query(query);
+    res.json({ message: 'Success' });
+  } catch (error) {
+    console.log('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/member/:MemberNo', async (req, res) => {
+  const MemberNo = req.params.MemberNo;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const query = `DELETE FROM MemberMaster WHERE MemberNo = ${MemberNo}`;
+
+          try {
+            await sql.query(query);
+            res.json({ message: 'Success' });
+          } catch (error) {
+            console.log('Error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          }
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+// app.delete('/api/member/:MemberNo', async (req, res) => {
+//   const MemberNo = req.params.MemberNo;
+//   const query = `
+//     DELETE FROM MemberMaster WHERE MemberNo = ${MemberNo};
+//   `;
+
+//   try {
+//     await sql.query(query); // Assuming you have a method like sql.query for database interaction
+//     res.json({ message: 'Success' });
+//   } catch (error) {
+//     console.log('Error:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
 // });
