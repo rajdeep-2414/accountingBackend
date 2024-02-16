@@ -40,22 +40,22 @@
   const path = require('path');
   const multer = require('multer');
   const AWS = require('aws-sdk');
-  const { v4: uuidv4 } = require('uuid');
-  const { PutObjectCommand, S3Client } = require('@aws-sdk/client-s3');
-  const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-  const session = require('express-session');
-  const cookieParser = require('cookie-parser');
+  // const { v4: uuidv4 } = require('uuid');
+  // const { PutObjectCommand, S3Client } = require('@aws-sdk/client-s3');
+  // const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+  // const session = require('express-session');
+  // const cookieParser = require('cookie-parser');
 
 
   const app = express();
   app.use(bodyParser.json());
   app.use(cors());
-  app.use(cookieParser());
-  app.use(session({
-    secret: 'abcdabcd',
-    resave: false,
-    saveUninitialized: true,
-  }));
+  // app.use(cookieParser());
+  // app.use(session({
+  //   secret: 'abcdabcd',
+  //   resave: false,
+  //   saveUninitialized: true,
+  // }));
 
 // Database configuration
 const dbConfig = {
