@@ -268,7 +268,7 @@ app.post('/api/login', (req, res) => {
 
 const checkDeleteAuthority = (req, res, next) => {
   console.log('Checking delete authority middleware');
-  const username = req.session.username;
+  // const username = req.session.username;
   console.log('Username:', username);
   const query = `SELECT AllowMasterDelete FROM Users WHERE UserName='${username}'`; 
   sql.query(query, (err, result) => {
@@ -5716,7 +5716,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
 
   // GET all gang
   app.get('/api/gang', (req, res) => {
-    const query = 'SELECT * FROM GangMaster';
+    const query = 'SELECT * FROM GangMaster ORDER BY Gangcode';
     sql.query(query, (err, result) => {
       if (err) {
         console.log('Error:', err);
@@ -8098,3 +8098,144 @@ app.delete('/api/member/:MemberNo', async (req, res) => {
 //     res.status(500).json({ error: 'Internal server error' });
 //   }
 // });
+
+//For GangSubMaster
+  // GET all gang
+  app.get('/api/gangsubmaster', (req, res) => {
+    const query = 'SELECT * FROM GangSubMaster';
+    sql.query(query, (err, result) => {
+      if (err) {
+        console.log('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.json(result.recordset);
+      }
+    });
+  });
+
+//For AttendenceEntries
+
+app.get('/api/AttendanceEntries', (req, res) => {
+  const query = 'SELECT * FROM AttendanceEntry';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.post('/api/AttendanceEntriesPost', (req, res) => {
+  const requestData = req.body;
+  const values = requestData.map(entry => `(
+      '${entry.entryNo}', 
+      '${entry.trdate}', 
+      '${entry.memberTypeCode}', 
+      '${entry.gangCode}', 
+      '${entry.DeptCode}', 
+      '${entry.YearCode}', 
+      '${entry.CompCode}', 
+      ${entry.USERID}, 
+      '${entry.EmpCode}', 
+      ${entry.Checked}
+  )`).join(',');
+
+  let query = `
+      INSERT INTO AttendanceEntry (
+          EntryNo, 
+          TrDate, 
+          EmpTypeCode, 
+          GangCode, 
+          DeptCode, 
+          YearCode, 
+          CompCode, 
+          USERID,  
+          EmpCode, 
+          PresentYN
+      ) VALUES ${values}`;
+
+  sql.query(query, (err, result) => {
+      if (err) {
+          console.log('Error:', err);
+          res.status(500).json({ error: 'Internal server error' });
+      } else {
+          res.json({ message: 'Data saved successfully' });
+      }
+  });
+});
+
+
+// app.post('/api/AttendanceEntriesPost', (req, res) => {
+//   const {
+//       entryNo,
+//       trdate,
+//       memberTypeCode,
+//       gangCode,
+//       DeptCode,
+//       YearCode,
+//       CompCode,
+//       USERID
+//   } = req.body;
+
+
+//   let query = `
+//     INSERT INTO AttendanceEntry (EntryNo, TrDate, EmpTypeCode ,GangCode, DeptCode, YearCode, CompCode, USERID) 
+//     VALUES ('${entryNo}','${trdate}','${memberTypeCode}','${gangCode}','${DeptCode}','${YearCode}',${CompCode},${USERID})`;
+
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Data saved successfully' });
+//     }
+//   });
+// });
+
+app.delete('/api/AttendanceEntriesDelete/:EntryNo', async (req, res) => {
+  const EntryNo = req.params.EntryNo;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const query = `DELETE FROM AttendanceEntry WHERE EntryNo = ${EntryNo}`;
+
+          try {
+            await sql.query(query);
+            res.json({ message: 'Success' });
+          } catch (error) {
+            console.log('Error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          }
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
