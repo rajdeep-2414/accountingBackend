@@ -8116,7 +8116,7 @@ app.delete('/api/member/:MemberNo', async (req, res) => {
 //For AttendenceEntries
 
 app.get('/api/AttendanceEntries', (req, res) => {
-  const query = 'SELECT * FROM AttendanceEntry';
+  const query = 'SELECT * FROM AttendanceEntry Order by EntryNo';
   sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
@@ -8127,10 +8127,11 @@ app.get('/api/AttendanceEntries', (req, res) => {
   });
 });
 
-app.post('/api/AttendanceEntriesPost', (req, res) => {
+app.post('/api/AttendanceEntriesPost/:entryNo', (req, res) => {
+  const entryNo = req.params.entryNo;
   const requestData = req.body;
   const values = requestData.map(entry => `(
-      '${entry.entryNo}', 
+      '${entryNo}', 
       '${entry.trdate}', 
       '${entry.memberTypeCode}', 
       '${entry.gangCode}', 
@@ -8143,6 +8144,8 @@ app.post('/api/AttendanceEntriesPost', (req, res) => {
   )`).join(',');
 
   let query = `
+      delete from AttendanceEntry where EntryNo = '${entryNo}';
+
       INSERT INTO AttendanceEntry (
           EntryNo, 
           TrDate, 
@@ -8166,33 +8169,6 @@ app.post('/api/AttendanceEntriesPost', (req, res) => {
   });
 });
 
-
-// app.post('/api/AttendanceEntriesPost', (req, res) => {
-//   const {
-//       entryNo,
-//       trdate,
-//       memberTypeCode,
-//       gangCode,
-//       DeptCode,
-//       YearCode,
-//       CompCode,
-//       USERID
-//   } = req.body;
-
-
-//   let query = `
-//     INSERT INTO AttendanceEntry (EntryNo, TrDate, EmpTypeCode ,GangCode, DeptCode, YearCode, CompCode, USERID) 
-//     VALUES ('${entryNo}','${trdate}','${memberTypeCode}','${gangCode}','${DeptCode}','${YearCode}',${CompCode},${USERID})`;
-
-//   sql.query(query, (err) => {
-//     if (err) {
-//       console.log('Error:', err);
-//       res.status(500).json({ error: 'Internal server error' });
-//     } else {
-//       res.json({ message: 'Data saved successfully' });
-//     }
-//   });
-// });
 
 app.delete('/api/AttendanceEntriesDelete/:EntryNo', async (req, res) => {
   const EntryNo = req.params.EntryNo;
@@ -8309,69 +8285,6 @@ app.post('/api/railwaywagon', (req, res) => {
       }
   });
 });
-
-// app.post('/api/railwaywagon', async (req, res) => {
-//   const {
-//     EntryNo,
-//     TrDate,
-//     PartyCode,
-//     RRNo,
-//     TotalWagons,
-//     RakeDate,
-//     RakeTime,
-//     StationName,
-//     TotalQty,
-//     TotalWeight,
-//     DeptCode,
-//     YearCode,
-//     CompCode,
-//     UserID,
-//   } = req.body;
-
-
-//   const query = `
-//       INSERT INTO RRWagonEntry (
-//         EntryNo,
-//         TrDate,
-//         PartyCode,
-//         RRNo,
-//         TotalWagons,
-//         RakeDate,
-//         RakeTime,
-//         StationCode,
-//         TotalQty,
-//         TotalWeight,
-//         DeptCode,
-//         YearCode,
-//         Compcode,
-//         UserID
-//       )
-//       VALUES (
-//         '${EntryNo}',
-//         '${TrDate}',
-//         '${PartyCode}',
-//         '${RRNo}',
-//         '${TotalWagons}',
-//         '${RakeDate}',
-//         '${RakeTime}',
-//         N'${StationName}',
-//         '${TotalQty}',
-//         '${TotalWeight}',
-//         '${DeptCode}',
-//         '${YearCode}',
-//         '${CompCode}',
-//         '${UserID}'
-//       );
-//     `;
-
-//   try {
-//     await sql.query(query); // Assuming you have a method like sql.query for database interaction
-//     res.json({ message: 'Success' });
-//   } catch (error) {
-//     console.log('Error:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
 
 app.put('/api/railwaywagon/:EntryNo', async (req, res) => {
   const EntryNo = req.params.EntryNo;
