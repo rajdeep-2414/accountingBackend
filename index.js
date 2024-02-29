@@ -8115,8 +8115,9 @@ app.delete('/api/member/:MemberNo', async (req, res) => {
 
 //For AttendenceEntries
 
-app.get('/api/AttendanceEntries', (req, res) => {
-  const query = 'SELECT * FROM AttendanceEntry Order by EntryNo';
+app.get('/api/AttendanceEntries/:selectedDate', (req, res) => {
+  const selectedDate = req.params.selectedDate;
+  const query = `SELECT * FROM AttendanceEntry WHERE TrDate = '${selectedDate}' ORDER BY EntryNo`;
   sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
