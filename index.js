@@ -70,6 +70,7 @@ const dbConfig = {
 };
 
 const defaultDatabase = 'GapCompany'; // Default database name
+// const defaultDatabase = 'GapData1FY2324'; // Default database name
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -8230,56 +8231,62 @@ app.delete('/api/AttendanceEntriesDelete/:EntryNo', async (req, res) => {
   });
 });
 
-app.post('/api/railwaywagon', (req, res) => {
+app.post('/api/railwaywagon/:EntryNo', (req, res) => {
+  const entryNo = req.params.EntryNo;
   const requestData = req.body;
   const values = requestData.map(entry => `(
-      ${entry.EntryNo}, 
-      '${entry.TrDate}', 
-      ${entry.RRNo},
-      ${entry.TotalWagons}, 
-      '${entry.RakeDate}', 
-      '${entry.RakeTime}', 
-      '${entry.StationName}',
-      '${entry.WagonNo}',
-      ${entry.ProductCode},
-      ${entry.Qty},
-      ${entry.Weight},
-      '${entry.SubAcCode}',
-      ${entry.TotalQty},  
-      ${entry.TotalWeight},
-      ${entry.DeptCode},
-      ${entry.YearCode},
-      ${entry.CompCode},
-      ${entry.UserID},
-      ${entry.ID}
-      )`).join(',');
+    ${entryNo}, 
+    '${entry.TrDate}', 
+    '${entry.RRNo ?entry.RRNo:entry.RRNO}',
+    ${entry.TotalWagons}, 
+    '${entry.RakeDate}', 
+    '${entry.RakeTime}', 
+    '${entry.StationName ?entry.StationName:entry.StationCode}',
+    '${entry.WagonNo}',
+    ${entry.ProductCode},
+    ${entry.Qty},
+    ${entry.Weight},
+    '${entry.SubAcCode ? entry.SubAcCode:entry.PartyCode}',
+    ${entry.TotalQty},  
+    ${entry.TotalWeight},
+    ${entry.DeptCode},
+    ${entry.YearCode},
+    ${entry.CompCode ? entry.CompCode: entry.Compcode},
+    ${entry.UserID},
+    ${entry.ID ? entry.ID: entry.WagonEntryNo}
+    )`).join(',');
 
-    let query = `
-      INSERT INTO RRWagonEntry (
-        EntryNo,
-        TrDate,
-        RRNo,
-        TotalWagons,
-        RakeDate,
-        RakeTime,
-        StationCode,
-        WagonNo,
-        ProductCode,
-        Qty,
-        Weight,
-        PartyCode,
-        TotalQty,
-        TotalWeight,
-        DeptCode,
-        YearCode,
-        Compcode,
-        UserID,
-        Remark3
-      ) VALUES ${values}`;
+let query = `
+    delete from RRWagonEntry where EntryNo = ${entryNo};
+
+    INSERT INTO RRWagonEntry (
+      EntryNo,
+      TrDate,
+      RRNo,
+      TotalWagons,
+      RakeDate,
+      RakeTime,
+      StationCode,
+      WagonNo,
+      ProductCode,
+      Qty,
+      Weight,
+      PartyCode,
+      TotalQty,
+      TotalWeight,
+      DeptCode,
+      YearCode,
+      Compcode,
+      UserID,
+      WagonEntryNo
+    ) VALUES ${values};`;
+
 
   sql.query(query, (err, result) => {
       if (err) {
+          console.log('query:', query);
           console.log('Error:', err);
+
           res.status(500).json({ error: 'Internal server error' });
       } else {
           res.json({ message: 'Data saved successfully' });
@@ -8287,52 +8294,52 @@ app.post('/api/railwaywagon', (req, res) => {
   });
 });
 
-app.put('/api/railwaywagon/:EntryNo', async (req, res) => {
-  const EntryNo = req.params.EntryNo;
-  const {
-    TrDate,
-    PartyCode,
-    RRNo,
-    TotalWagons,
-    RakeDate,
-    RakeTime,
-    StationName,
-    TotalQty,
-    TotalWeight,
-    DeptCode,
-    YearCode,
-    CompCode,
-    UserID,
-  } = req.body;
+// app.put('/api/railwaywagon/:EntryNo', async (req, res) => {
+//   const EntryNo = req.params.EntryNo;
+//   const {
+//     TrDate,
+//     PartyCode,
+//     RRNo,
+//     TotalWagons,
+//     RakeDate,
+//     RakeTime,
+//     StationName,
+//     TotalQty,
+//     TotalWeight,
+//     DeptCode,
+//     YearCode,
+//     CompCode,
+//     UserID,
+//   } = req.body;
 
-  const query = `
-    UPDATE RRWagonEntry
-    SET
-      TrDate = '${TrDate}',
-      PartyCode = '${PartyCode}',
-      RRNo = '${RRNo}',
-      TotalWagons = '${TotalWagons}',
-      RakeDate = '${RakeDate}',
-      RakeTime = '${RakeTime}',
-      StationCode = N'${StationName}',
-      TotalQty = '${TotalQty}',
-      TotalWeight = '${TotalWeight}',
-      DeptCode = '${DeptCode}',
-      YearCode = '${YearCode}',
-      Compcode = '${CompCode}',
-      UserID = '${UserID}'
-    WHERE
-    EntryNo = '${EntryNo}';
-  `;
+//   const query = `
+//     UPDATE RRWagonEntry
+//     SET
+//       TrDate = '${TrDate}',
+//       PartyCode = '${PartyCode}',
+//       RRNo = '${RRNo}',
+//       TotalWagons = '${TotalWagons}',
+//       RakeDate = '${RakeDate}',
+//       RakeTime = '${RakeTime}',
+//       StationCode = N'${StationName}',
+//       TotalQty = '${TotalQty}',
+//       TotalWeight = '${TotalWeight}',
+//       DeptCode = '${DeptCode}',
+//       YearCode = '${YearCode}',
+//       Compcode = '${CompCode}',
+//       UserID = '${UserID}'
+//     WHERE
+//     EntryNo = '${EntryNo}';
+//   `;
 
-  try {
-    await sql.query(query); // Assuming you have a method like sql.query for database interaction
-    res.json({ message: 'Success' });
-  } catch (error) {
-    console.log('Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+//   try {
+//     await sql.query(query); // Assuming you have a method like sql.query for database interaction
+//     res.json({ message: 'Success' });
+//   } catch (error) {
+//     console.log('Error:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
 
 app.delete('/api/railwaywagon/:EntryNo', async (req, res) => {
   const EntryNo = req.params.EntryNo;
