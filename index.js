@@ -8239,6 +8239,7 @@ app.post('/api/railwaywagon/:EntryNo', (req, res) => {
     '${entry.TrDate}', 
     '${entry.RRNo ?entry.RRNo:entry.RRNO}',
     ${entry.TotalWagons}, 
+    ${entry.RakeNo}, 
     '${entry.RakeDate}', 
     '${entry.RakeTime}', 
     '${entry.StationName ?entry.StationName:entry.StationCode}',
@@ -8264,6 +8265,7 @@ let query = `
       TrDate,
       RRNo,
       TotalWagons,
+      RakeNo,
       RakeDate,
       RakeTime,
       StationCode,
@@ -8284,7 +8286,6 @@ let query = `
 
   sql.query(query, (err, result) => {
       if (err) {
-          console.log('query:', query);
           console.log('Error:', err);
 
           res.status(500).json({ error: 'Internal server error' });
@@ -8386,3 +8387,4 @@ app.delete('/api/railwaywagon/:EntryNo', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 }); 
+
