@@ -69,8 +69,8 @@ const dbConfig = {
   },
 };
 
-// const defaultDatabase = 'GapCompany'; // Default database name
-const defaultDatabase = 'GapData1FY2324'; // Default database name
+const defaultDatabase = 'GapCompany'; // Default database name
+// const defaultDatabase = 'GapData1FY2324'; // Default database name
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
