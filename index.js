@@ -69,8 +69,8 @@ const dbConfig = {
   },
 };
 
-const defaultDatabase = 'GapCompany'; // Default database name
-// const defaultDatabase = 'GapData1FY2324'; // Default database name
+// const defaultDatabase = 'GapCompany'; // Default database name
+const defaultDatabase = 'GapData1FY2324'; // Default database name
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -6476,18 +6476,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     }
   });
   
-  // app.delete('/api/employee/:EmpCode', (req, res) => {
-  //   const { EmpCode } = req.params;
-  //   const query = `DELETE FROM EmployeeMaster WHERE EmpCode='${EmpCode}'`;
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       res.json({ message: 'Employee deleted successfully' });
-  //     }
-  //   });
-  // }); 
+
   
   app.put('/api/employee/:EmpCode', async (req, res) => {
     const { EmpCode } = req.params;
@@ -6571,18 +6560,18 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         DateOfEmployment = '${DateOfEmployment}',
         DateOfBirth = '${DateOfBirth}',
         DateOfRetirement = '${DateOfRetirement}',
-        Age = '${RetireAge}',
-        EmpTypeCode = '${EmpTypeCode}',
-        DesgCode = '${DesgCode}',
-        QualificationCode = '${QualificationCode}',
-        CasteCode = '${CasteCode}',
-        CompCode = '${CompCode}',
-        DeptCode = '${DeptCode}',
-        GangCode = '${GangCode}',
-        StatusCode = '${StatusCode}',
-        MemberCode1 = '${MemberCode1}',
-        MemberCode2 = '${MemberCode2}',
-        MemberCode3 = '${MemberCode3}',
+        Age = ${RetireAge},
+        EmpTypeCode = ${EmpTypeCode},
+        DesgCode = ${DesgCode},
+        QualificationCode = ${QualificationCode},
+        CasteCode = ${CasteCode},
+        CompCode = ${CompCode},
+        DeptCode = ${DeptCode},
+        GangCode = ${GangCode},
+        StatusCode = ${StatusCode},
+        MemberCode1 = ${MemberCode1},
+        MemberCode2 = ${MemberCode2}, 
+        MemberCode3 = ${MemberCode3},
         PhotoPath = N'${PhotoPath}',
         SignPath = N'${SignPath}',
         AadharPath = N'${AadharPath}',
@@ -6608,8 +6597,11 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     try {
       await sql.query(query);
       res.json({ message: 'Employee updated successfully' });
+      console.log('query:', query);
+
     } catch (error) {
       console.log('Error:', error);
+      console.log('query:', query);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
@@ -8164,6 +8156,7 @@ app.post('/api/AttendanceEntriesPost/:entryNo', (req, res) => {
   sql.query(query, (err, result) => {
       if (err) {
           console.log('Error:', err);
+          console.log('query:', query);
           res.status(500).json({ error: 'Internal server error' });
       } else {
           res.json({ message: 'Data saved successfully' });
@@ -8247,14 +8240,15 @@ app.post('/api/railwaywagon/:EntryNo', (req, res) => {
     ${entry.ProductCode},
     ${entry.Qty},
     ${entry.Weight},
-    '${entry.SubAcCode ? entry.SubAcCode:entry.PartyCode}',
+    '${entry.SubAcCode ? entry.SubAcCode : entry.PartyCode}',
     ${entry.TotalQty},  
     ${entry.TotalWeight},
     ${entry.DeptCode},
     ${entry.YearCode},
     ${entry.CompCode ? entry.CompCode: entry.Compcode},
     ${entry.UserID},
-    ${entry.ID ? entry.ID: entry.WagonEntryNo}
+    ${entry.ID ? entry.ID : entry.WagonEntryNo},
+    'RRW'
     )`).join(',');
 
 let query = `
@@ -8280,13 +8274,15 @@ let query = `
       YearCode,
       Compcode,
       UserID,
-      WagonEntryNo
+      WagonEntryNo,
+      Flag
     ) VALUES ${values};`;
 
 
   sql.query(query, (err, result) => {
       if (err) {
           console.log('Error:', err);
+          console.log('query:', query);
 
           res.status(500).json({ error: 'Internal server error' });
       } else {
@@ -8294,53 +8290,6 @@ let query = `
       }
   });
 });
-
-// app.put('/api/railwaywagon/:EntryNo', async (req, res) => {
-//   const EntryNo = req.params.EntryNo;
-//   const {
-//     TrDate,
-//     PartyCode,
-//     RRNo,
-//     TotalWagons,
-//     RakeDate,
-//     RakeTime,
-//     StationName,
-//     TotalQty,
-//     TotalWeight,
-//     DeptCode,
-//     YearCode,
-//     CompCode,
-//     UserID,
-//   } = req.body;
-
-//   const query = `
-//     UPDATE RRWagonEntry
-//     SET
-//       TrDate = '${TrDate}',
-//       PartyCode = '${PartyCode}',
-//       RRNo = '${RRNo}',
-//       TotalWagons = '${TotalWagons}',
-//       RakeDate = '${RakeDate}',
-//       RakeTime = '${RakeTime}',
-//       StationCode = N'${StationName}',
-//       TotalQty = '${TotalQty}',
-//       TotalWeight = '${TotalWeight}',
-//       DeptCode = '${DeptCode}',
-//       YearCode = '${YearCode}',
-//       Compcode = '${CompCode}',
-//       UserID = '${UserID}'
-//     WHERE
-//     EntryNo = '${EntryNo}';
-//   `;
-
-//   try {
-//     await sql.query(query); // Assuming you have a method like sql.query for database interaction
-//     res.json({ message: 'Success' });
-//   } catch (error) {
-//     console.log('Error:', error);
-//     res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
 
 app.delete('/api/railwaywagon/:EntryNo', async (req, res) => {
   const EntryNo = req.params.EntryNo;
@@ -8388,3 +8337,87 @@ app.delete('/api/railwaywagon/:EntryNo', async (req, res) => {
   }
 }); 
 
+// for RRDispatch
+
+app.post('/api/RRDispatch/:EntryNo', (req, res) => {
+  const entryNo = req.params.EntryNo;
+  const requestData = req.body;
+  const values = requestData.map(entry => `(
+    ${entryNo}, 
+    '${entry.TrDate}', 
+    '${entry.RRNo ?entry.RRNo:entry.RRNO}',
+    ${entry.TotalWagons}, 
+    ${entry.RakeNo}, 
+    '${entry.RakeDate}', 
+    '${entry.RakeTime}', 
+    '${entry.StationName ?entry.StationName:entry.StationCode}',
+    '${entry.WagonNo}',
+    ${entry.ProductCode},
+    ${entry.Qty},
+    ${entry.Weight},
+    '${entry.SubAcCode ? entry.SubAcCode : entry.PartyCode}',
+    ${entry.TotalQty},  
+    ${entry.TotalWeight},
+    ${entry.DeptCode},
+    ${entry.YearCode},
+    ${entry.CompCode ? entry.CompCode: entry.Compcode},
+    ${entry.UserID},
+    ${entry.WagonEntryNo},
+    ${entry.ID ? entry.ID : entry.DesptachEntryNo},
+    ${entry.GangCode}, 
+    '${entry.HamaliTypeCode}',
+    ${entry.VehicleCode},
+    '${entry.DriverName}',
+    ${entry.RPHQty},
+    ${entry.UnloadTypeCode},
+    ${entry.BuiltyNo},
+    'RRD'
+    )`).join(',');
+
+let query = `
+    delete from RRWagonEntry where EntryNo = ${entryNo} And Flag = 'RRD';
+
+    INSERT INTO RRWagonEntry (
+      EntryNo,
+      TrDate,
+      RRNo,
+      TotalWagons,
+      RakeNo,
+      RakeDate,
+      RakeTime,
+      StationCode,
+      WagonNo,
+      ProductCode,
+      Qty,
+      Weight,
+      PartyCode,
+      TotalQty,
+      TotalWeight,
+      DeptCode,
+      YearCode,
+      Compcode,
+      UserID,
+      WagonEntryNo,
+      DesptachEntryNo,
+      GangCode,
+      HamaliTypeCode,
+      VehicleCode,
+      DriverName,
+      RPHQty,
+      BiltiNo,
+      UnloadTypeCode,
+      Flag
+    ) VALUES ${values};`;
+
+
+  sql.query(query, (err, result) => {
+      if (err) {
+          console.log('Error:', err);
+          console.log('query:', query);
+
+          res.status(500).json({ error: 'Internal server error' });
+      } else {
+          res.json({ message: 'Data saved successfully' });
+      }
+  });
+});
