@@ -8213,7 +8213,7 @@ app.delete('/api/AttendanceEntriesDelete/:EntryNo', async (req, res) => {
 
  //For RailwayWagon
  app.get('/api/railwaywagon', (req, res) => {
-  const query = 'SELECT * FROM RRWagonEntry';
+  const query = 'SELECT * FROM RRWagonEntry order by EntryNo';
   sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
