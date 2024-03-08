@@ -8473,7 +8473,10 @@ app.post('/api/RRDispatch/:EntryNo', (req, res) => {
       )`).join(',');
 
       const insertQuery = `
-          DELETE FROM RRWagonEntry WHERE EntryNo = ${entryNo} AND Flag = 'RRD';
+          DELETE FROM RRWagonEntry 
+          WHERE WagonEntryNo IN (${requestData.map(entry => entry.WagonEntryNo).join(',')})
+          AND Flag = 'RRD';
+      
           INSERT INTO RRWagonEntry (
               EntryNo,
               TrDate,
