@@ -69,8 +69,8 @@ const dbConfig = {
   },
 };
 
-const defaultDatabase = 'GapCompany'; // Default database name
-// const defaultDatabase = 'GapData1FY2324'; // Default database name
+// const defaultDatabase = 'GapCompany'; // Default database name
+const defaultDatabase = 'GapData1FY2324'; // Default database name
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -8213,7 +8213,7 @@ app.delete('/api/AttendanceEntriesDelete/:EntryNo', async (req, res) => {
 
  //For RailwayWagon
  app.get('/api/railwaywagon', (req, res) => {
-  const query = 'SELECT * FROM RRWagonEntry order by EntryNo';
+  const query = 'SELECT * FROM RRWagonEntry';
   sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
@@ -8428,7 +8428,9 @@ app.post('/api/RRDispatch/:EntryNo', (req, res) => {
 
   if (requestData.length === 0) {
       // If the requestData array is empty, just delete records and return.
-      const deleteQuery = `DELETE FROM RRWagonEntry WHERE EntryNo = ${entryNo} AND Flag = 'RRD';`;
+      const deleteQuery = ` DELETE FROM RRWagonEntry 
+      WHERE WagonEntryNo IN (${requestData.map(entry => entry.WagonEntryNo).join(',')})
+      AND Flag = 'RRD';`;
 
       sql.query(deleteQuery, (err, result) => {
           if (err) {
@@ -8451,7 +8453,7 @@ app.post('/api/RRDispatch/:EntryNo', (req, res) => {
           '${entry.StationName ? entry.StationName : entry.StationCode}',
           '${entry.WagonNo}',
           ${entry.ProductCode},
-          ${entry.Qty},
+          ${entry.LoadQty},
           ${entry.Weight},
           '${entry.SubAcCode ? entry.SubAcCode : entry.PartyCode}',
           ${entry.TotalQty},  
