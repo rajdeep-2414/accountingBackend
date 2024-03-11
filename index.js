@@ -69,8 +69,8 @@ const dbConfig = {
   },
 };
 
-// const defaultDatabase = 'GapCompany'; // Default database name
-const defaultDatabase = 'GapData1FY2324'; // Default database name
+const defaultDatabase = 'GapCompany'; // Default database name
+// const defaultDatabase = 'GapData1FY2324'; // Default database name
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -8339,89 +8339,6 @@ app.delete('/api/railwaywagon/:EntryNo', async (req, res) => {
 
 // for RRDispatch
 
-// app.post('/api/RRDispatch/:EntryNo', (req, res) => {
-//   const entryNo = req.params.EntryNo;
-//   const requestData = req.body;
-//   const values = requestData.map(entry => `(
-//     ${entryNo}, 
-//     '${entry.TrDate}', 
-//     '${entry.RRNo ?entry.RRNo:entry.RRNO}',
-//     ${entry.TotalWagons}, 
-//     ${entry.RakeNo}, 
-//     '${entry.RakeDate}', 
-//     '${entry.RakeTime}', 
-//     '${entry.StationName ?entry.StationName:entry.StationCode}',
-//     '${entry.WagonNo}',
-//     ${entry.ProductCode},
-//     ${entry.Qty},
-//     ${entry.Weight},
-//     '${entry.SubAcCode ? entry.SubAcCode : entry.PartyCode}',
-//     ${entry.TotalQty},  
-//     ${entry.TotalWeight},
-//     ${entry.DeptCode},
-//     ${entry.YearCode},
-//     ${entry.CompCode ? entry.CompCode: entry.Compcode},
-//     ${entry.UserID},
-//     ${entry.WagonEntryNo},
-//     ${entry.ID ? entry.ID : entry.DesptachEntryNo},
-//     ${entry.GangCode}, 
-//     '${entry.HamaliTypeCode}',
-//     ${entry.VehicleCode},
-//     '${entry.DriverName}',
-//     ${entry.RPHQty},
-//     ${entry.UnloadTypeCode},
-//     ${entry.BuiltyNo},
-//     'RRD'
-//     )`).join(',');
-
-// let query = `
-//     delete from RRWagonEntry where EntryNo = ${entryNo} And Flag = 'RRD';
-
-//     INSERT INTO RRWagonEntry (
-//       EntryNo,
-//       TrDate,
-//       RRNo,
-//       TotalWagons,
-//       RakeNo,
-//       RakeDate,
-//       RakeTime,
-//       StationCode,
-//       WagonNo,
-//       ProductCode,
-//       Qty,
-//       Weight,
-//       PartyCode,
-//       TotalQty,
-//       TotalWeight,
-//       DeptCode,
-//       YearCode,
-//       Compcode,
-//       UserID,
-//       WagonEntryNo,
-//       DesptachEntryNo,
-//       GangCode,
-//       HamaliTypeCode,
-//       VehicleCode,
-//       DriverName,
-//       RPHQty,
-//       BiltiNo,
-//       UnloadTypeCode,
-//       Flag
-//     ) VALUES ${values};`;
-
-
-//   sql.query(query, (err, result) => {
-//       if (err) {
-//           console.log('Error:', err);
-//           console.log('query:', query);
-
-//           res.status(500).json({ error: 'Internal server error' });
-//       } else {
-//           res.json({ message: 'Data saved successfully' });
-//       }
-//   });
-// });
-
 app.post('/api/RRDispatch/:EntryNo', (req, res) => {
   const entryNo = req.params.EntryNo;
   const requestData = req.body;
@@ -8471,6 +8388,7 @@ app.post('/api/RRDispatch/:EntryNo', (req, res) => {
           ${entry.RPHQty},
           ${entry.BuiltyNo ?entry.BuiltyNo: entry.BiltiNo},
           ${entry.UnloadTypeCode},
+          ${entry.DepartmentCode},
           'RRD'
       )`).join(',');
 
@@ -8508,6 +8426,7 @@ app.post('/api/RRDispatch/:EntryNo', (req, res) => {
               RPHQty,
               BiltiNo,
               UnloadTypeCode,
+              LocationCode,
               Flag
           ) VALUES ${values};`;
 
@@ -8521,4 +8440,49 @@ app.post('/api/RRDispatch/:EntryNo', (req, res) => {
           }
       });
   }
+});
+
+// for CWC Inward
+app.put('/api/CWCInward/:DespatchCode', (req, res) => {
+  const { DespatchCode } = req.params;
+  const { 
+    NetWeight,
+    GangCode2,
+    StackNo,
+    HamaliTypeCode2,
+    WagonEntryNo,
+    EntryNo,
+    otherAmt 
+    } = req.body;
+    const query = `
+  UPDATE RRWagonEntry 
+  SET 
+  Weight = N'${NetWeight}', 
+  GangCode1 = N'${GangCode2}', 
+  HamaliTypeCode1 = N'${HamaliTypeCode2}', 
+  OtherAmt = '${otherAmt}'
+  WHERE  Flag = 'RRD'AND EntryNo = ${EntryNo} AND WagonEntryNo = ${WagonEntryNo}  AND DesptachEntryNo = ${DespatchCode};
+`;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'Product updated successfully',
+          NetWeight,
+          GangCode2,
+          StackNo,
+          HamaliTypeCode2,
+          WagonEntryNo,
+          EntryNo,
+          otherAmt 
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
 });
