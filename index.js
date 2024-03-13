@@ -69,8 +69,8 @@ const dbConfig = {
   },
 };
 
-const defaultDatabase = 'GapCompany'; // Default database name
-// const defaultDatabase = 'GapData1FY2324'; // Default database name
+// const defaultDatabase = 'GapCompany'; // Default database name
+const defaultDatabase = 'GapData1FY2324'; // Default database name
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -105,7 +105,6 @@ connectToDatabase(defaultDatabase)
     });
   });
 
-
   app.post('/connect', async (req, res) => {
     const { companyCode, financialYear } = req.body;
   
@@ -135,34 +134,34 @@ connectToDatabase(defaultDatabase)
     }
   });
 
-// Connect to the database function
-async function connectToDatabase(databaseName) {
-  const config = {
-    ...dbConfig,
-    database: databaseName
-  };
-  try {
-    await sql.connect(config);
-    console.log("config", config);
-    console.log(`Connected to the ${databaseName} database`);
-    return true;
-  } catch (error) {
-    console.error('Error connecting to the database:', error);
-    return false;
+  // Connect to the database function
+  async function connectToDatabase(databaseName) {
+    const config = {
+      ...dbConfig,
+      database: databaseName
+    };
+    try {
+      await sql.connect(config);
+      console.log("config", config);
+      console.log(`Connected to the ${databaseName} database`);
+      return true;
+    } catch (error) {
+      console.error('Error connecting to the database:', error);
+      return false;
+    }
   }
-}
 
 
-app.post('/close-sql-connection', async (req, res) => {
-  try {
-    // Close the SQL connection
-    await sql.close();
-    res.json({ message: 'SQL connection closed successfully' });
-  } catch (error) {
-    console.error('Error closing SQL connection:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+  app.post('/close-sql-connection', async (req, res) => {
+    try {
+      // Close the SQL connection
+      await sql.close();
+      res.json({ message: 'SQL connection closed successfully' });
+    } catch (error) {
+      console.error('Error closing SQL connection:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
 
 // Assuming you have your route defined like this
 app.post('/logout', async (req, res) => {
@@ -4884,18 +4883,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     }
   });
   
-  // app.delete('/api/tranentries/:entryNo/:flag', (req, res) => {
-  //   const { entryNo, flag } = req.params;
-  //   const query = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       res.json({ message: 'TranEntry deleted successfully' });
-  //     }
-  //   });
-  // });
 
   app.delete('/api/Newtranentries/:uniqueCode/:UserID', async (req, res) => {
     const { uniqueCode, UserID } = req.params;
@@ -4944,20 +4931,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     }
   });
   
-
-  // app.delete('/api/Newtranentries/:uniqueCode/:UserID', (req, res) => {
-  //   const { uniqueCode , UserID} = req.params;
-  //   const query = `DELETE FROM TranEntryTempSub WHERE COMPUTERID=${uniqueCode} AND UserID=${UserID}`;
-  //   console.log("print",uniqueCode);
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       res.json({ message: 'BillSubTemp deleted successfully' });
-  //     }
-  //   });
-  // });
 
   
   app.post('/api/tranEntry-insertDataAndFlag', (req, res) => {
@@ -5164,23 +5137,6 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     }
   });
   
-
-  // app.delete('/api/NewSelltries/:entryNo/:flag', (req, res) => {
-  //   const { entryNo, flag } = req.params;
-  //   const query = `DELETE FROM BillSub  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
-  //                   DELETE FROM BillEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
-  //                   DELETE FROM TranEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';`;
-
-  //   console.log("print",entryNo, flag);
-  //   sql.query(query, (err) => {
-  //     if (err) {
-  //       console.log('Error:', err);
-  //       res.status(500).json({ error: 'Internal server error' });
-  //     } else {
-  //       res.json({ message: 'BillSubTemp deleted successfully' });
-  //     }
-  //   });
-  // });
 
   app.get('/api/distinct-sellentries/:flag/:dept/:year/:company', (req, res) => {
     const flag = req.params.flag;
@@ -7800,6 +7756,228 @@ app.delete('/api/DeleteBankMaster/:bankCode', async (req, res) => {
 //   });
 // });
 
+
+//For ItemRateChartMaster
+// GET all ItemRateChartMaster entries
+app.get('/api/ratechart', (req, res) => {
+  const query = 'SELECT * FROM ItemRateChartMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new ItemRateChartMaster entry
+app.post('/api/ratechart', (req, res) => {
+  const { ItemCode, ItemName, ItemDesc, Rate, Remark1, UserID } = req.body;
+  const query = `
+    INSERT INTO ItemRateChartMaster (ItemCode, ItemName, ItemDesc, Rate, Remark1, UserID)
+    VALUES ('${ItemCode}', '${ItemName}', '${ItemDesc}', ${Rate}, '${Remark1}', '${UserID}');
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'ItemRateChartMaster entry created successfully' });
+    }
+  });
+});
+
+// PUT update an existing ItemRateChartMaster entry
+app.put('/api/ratechart/:ItemCode', (req, res) => {
+  const { ItemCode } = req.params;
+  const { ItemName, ItemDesc, Rate, Remark1, UserID } = req.body;
+  const query = `
+    UPDATE ItemRateChartMaster
+    SET ItemName='${ItemName}', ItemDesc='${ItemDesc}', Rate=${Rate}, Remark1=N'${Remark1}', UserID='${UserID}'
+    WHERE ItemCode='${ItemCode}';
+  `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'ItemRateChartMaster entry updated successfully',
+          ItemCode: ItemCode,
+          ItemName,
+          ItemDesc,
+          Rate,
+          Remark1,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a ItemRateChartMaster entry
+app.delete('/api/ratechart/:ItemCode', async (req, res) => {
+  const { ItemCode } = req.params;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM ItemRateChartMaster WHERE ItemCode='${ItemCode}'`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'ItemRateChartMaster entry deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+// For YojanaMaster------------------------------------------------------------------------------------
+// GET all Yojana entries
+app.get('/api/yojana', (req, res) => {
+  const query = 'SELECT * FROM YojanaMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new Yojana entry
+app.post('/api/yojana', (req, res) => {
+  const { YojanaCode, YojanaName, YojanaNameEng, Remark1, UserID } = req.body;
+  const query = `
+    INSERT INTO YojanaMaster (YojanaCode, YojanaName, YojanaNameEng, Remark1, UserID)
+    VALUES ('${YojanaCode}', N'${YojanaName}', '${YojanaNameEng}', '${Remark1}', '${UserID}');
+  `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Yojana entry created successfully' });
+    }
+  });
+});
+
+// PUT update an existing Yojana entry
+app.put('/api/yojana/:YojanaCode', (req, res) => {
+  const { YojanaCode } = req.params;
+  const { YojanaName, YojanaNameEng, Remark1, UserID } = req.body;
+  const query = `
+    UPDATE YojanaMaster
+    SET YojanaName=N'${YojanaName}', YojanaNameEng='${YojanaNameEng}', Remark1='${Remark1}', UserID='${UserID}'
+    WHERE YojanaCode='${YojanaCode}';
+  `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'Yojana entry updated successfully',
+          YojanaCode,
+          YojanaName,
+          YojanaNameEng,
+          Remark1,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a Yojana entry
+app.delete('/api/yojana/:YojanaCode', async (req, res) => {
+  const { YojanaCode } = req.params;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM YojanaMaster WHERE YojanaCode='${YojanaCode}'`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'Yojana entry deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+ 
+
 //For MemberMaster
 app.get('/api/member', (req, res) => {
   const query = 'SELECT * FROM MemberMaster';
@@ -8211,9 +8389,25 @@ app.delete('/api/AttendanceEntriesDelete/:EntryNo', async (req, res) => {
   }
 });
 
- //For RailwayWagon
- app.get('/api/railwaywagon', (req, res) => {
-  const query = 'SELECT * FROM RRWagonEntry';
+//  //For RailwayWagon
+//  app.get('/api/railwaywagon', (req, res) => {
+//   const { DeptCode, YearCode, CompCode } = req.query;
+//   const query = `SELECT * FROM RRWagonEntry WHERE DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND CompCode = ${CompCode}`;
+//   sql.query(query, (err, result) => {
+//     if (err) {
+//       console.log('query',query);
+//       console.error('Error executing SQL query:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       console.log('query',query);
+//       res.json(result);
+//     }
+//   });
+// });
+
+ app.get('/api/railwaywagon/:DeptCode/:CompCode/:YearCode', (req, res) => {
+  const { DeptCode, CompCode, YearCode } = req.params;
+  const query = `SELECT * FROM RRWagonEntry WHERE DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND CompCode = ${CompCode}`;
   sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
@@ -8486,3 +8680,109 @@ app.put('/api/CWCInward/:DespatchCode', (req, res) => {
     }
   });
 });
+
+//for DO entry 
+app.post('/api/DoEntry/:DoEntryNo', (req, res) => {
+  const entryNo = req.params.DoEntryNo;
+  const requestData = req.body;
+  const values = requestData.map(entry => `(
+    ${entryNo}, 
+    '${entry.TrDate}', 
+    '${entry.DoMonth? entry.DoMonth: entry.TrMonth}',
+    ${entry.ProductCode},
+    ${entry.ItemCode? entry.ItemCode: entry.YojanaCode},
+    ${entry.TalukaCode}, 
+    ${entry.Weight}, 
+    ${entry.GoDownWeight? entry.GoDownWeight: entry.GodwonWeight}, 
+    ${entry.DirectWeight},
+    ${entry.TotTalukaWeight? entry.TotTalukaWeight: entry.TalukaCode}, 
+    '${entry.Remark? entry.Remark: entry.Remark1}',
+    ${entry.DeptCode},
+    ${entry.YearCode},
+    ${entry.CompCode ? entry.CompCode: entry.Compcode},
+    ${entry.UserID},
+    ${entry.editRoomId? entry.editRoomId: entry.DesptachEntryNo},
+    'DO'
+    )`).join(',');
+
+let query = `
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'DO';
+
+    INSERT INTO RRWagonEntry (
+      EntryNo,
+      TrDate,
+      TrMonth,
+      ProductCode,
+      YojanaCode,
+      TalukaCode,
+      Weight,
+      GodwonWeight,
+      DirectWeight,
+      TalukaWeight,
+      Remark1,
+      DeptCode,
+      YearCode,
+      Compcode,
+      UserID,
+      DesptachEntryNo,
+      Flag
+    ) VALUES ${values};`;
+
+
+  sql.query(query, (err, result) => {
+      if (err) {
+          console.log('Error:', err);
+          console.log('query:', query);
+
+          res.status(500).json({ error: 'Internal server error' });
+      } else {
+          res.json({ message: 'Data saved successfully' });
+      }
+  });
+});
+
+app.delete('/api/DELDoEntry/:EntryNo', async (req, res) => {
+  const EntryNo = req.params.EntryNo;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowEntryDelete } = userResults.recordset[0];
+
+        if (AllowEntryDelete === 1) {
+          // The user has permission to delete entries
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='DO'`;
+
+          try {
+            await sql.query(query);
+            res.json({ message: 'Success' });
+          } catch (error) {
+            console.log('Error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          }
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}); 
