@@ -69,8 +69,8 @@ const dbConfig = {
   },
 };
 
-// const defaultDatabase = 'GapCompany'; // Default database name
-const defaultDatabase = 'GapData1FY2324'; // Default database name
+const defaultDatabase = 'GapCompany'; // Default database name
+// const defaultDatabase = 'GapData1FY2324'; // Default database name
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -8690,7 +8690,7 @@ app.post('/api/DoEntry/:DoEntryNo', (req, res) => {
     '${entry.TrDate}', 
     '${entry.DoMonth? entry.DoMonth: entry.TrMonth}',
     ${entry.ProductCode},
-    ${entry.ItemCode? entry.ItemCode: entry.YojanaCode},
+    ${entry.YojanaCode? entry.YojanaCode : entry.editRoomId},
     ${entry.TalukaCode}, 
     ${entry.Weight}, 
     ${entry.GoDownWeight? entry.GoDownWeight: entry.GodwonWeight}, 
