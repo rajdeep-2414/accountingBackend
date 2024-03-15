@@ -8270,6 +8270,107 @@ app.delete('/api/member/:MemberNo', async (req, res) => {
 //   }
 // });
 
+ //For ShopMaster
+ app.get('/api/shop', (req, res) => {
+  const query = 'SELECT * FROM ShopMaster'
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('error:', err);
+      res.status(500).json({ error: 'internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  })
+});
+
+// POST endpoint for inserting data
+app.post('/api/shop', (req, res) => {
+  const { ShopCode, ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance, TalukaCode, Remark1, Remark2, Remark3, UserID } = req.body;
+  const query = `INSERT INTO ShopMaster (ShopCode, ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance, TalukaCode, Remark1, Remark2, Remark3, UserID) 
+                 VALUES ('${ShopCode}', N'${ShopName}', '${ShopNo}', N'${ShopAddress}', '${ShopPhone}', '${ShopDistance}', '${TalukaCode}', N'${Remark1}', N'${Remark2}', N'${Remark3}', ${UserID})`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Item created successfully' });
+    }
+  });
+});
+
+// PUT endpoint for updating data
+app.put('/api/shop/:ShopCode', (req, res) => {
+  const { ShopCode } = req.params;
+  const { ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance, TalukaCode, Remark1, Remark2, Remark3, UserID } = req.body;
+  const query = `UPDATE ShopMaster 
+                 SET ShopName = N'${ShopName}', 
+                     ShopNo = '${ShopNo}', 
+                     ShopAddress = N'${ShopAddress}', 
+                     ShopPhone = '${ShopPhone}', 
+                     ShopDistance = '${ShopDistance}', 
+                     TalukaCode = '${TalukaCode}', 
+                     Remark1 = N'${Remark1}', 
+                     Remark2 = N'${Remark2}', 
+                     Remark3 = N'${Remark3}', 
+                     UserID = ${UserID} 
+                 WHERE ShopCode = '${ShopCode}'`;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Item updated successfully' });
+    }
+  });
+});
+
+app.delete('/api/shop/:ShopCode', async (req, res) => {
+  const { ShopCode } = req.params;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM ShopMaster WHERE ShopCode='${ShopCode}'`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'DeptMaster deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}); 
+
 //For GangSubMaster
   // GET all gang
   app.get('/api/gangsubmaster', (req, res) => {
