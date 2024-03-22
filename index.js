@@ -61,6 +61,7 @@
 const dbConfig = {
   user: 'Well1',
   password: 'well228608',
+    // server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
   server: 'hamalisangh.cduuaiiygwxk.ap-south-1.rds.amazonaws.com',
   port: 1857, 
   options: {
