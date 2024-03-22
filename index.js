@@ -61,7 +61,6 @@
 const dbConfig = {
   user: 'Well1',
   password: 'well228608',
-    // server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
   server: 'hamalisangh.cduuaiiygwxk.ap-south-1.rds.amazonaws.com',
   port: 1857, 
   options: {
@@ -8401,8 +8400,65 @@ app.get('/api/AttendanceEntries/:selectedDate', (req, res) => {
   });
 });
 
-app.post('/api/AttendanceEntriesPost/:entryNo', (req, res) => {
+app.get('/api/attendance', (req, res) => {
+  const query = 'SELECT * FROM AttendanceEntry';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// app.post('/api/AttendanceEntriesPost/:entryNo/:trdate', (req, res) => {
+//   const entryNo = req.params.entryNo;
+//   const trdate = req.params.trdate;
+//   const requestData = req.body;
+//   const values = requestData.map(entry => `(
+//       '${entryNo}', 
+//       '${entry.trdate}', 
+//       '${entry.memberTypeCode}', 
+//       '${entry.gangCode}', 
+//       '${entry.DeptCode}', 
+//       '${entry.YearCode}', 
+//       '${entry.CompCode}', 
+//       ${entry.USERID}, 
+//       '${entry.EmpCode}', 
+//       ${entry.Checked}
+//   )`).join(',');
+
+//   let query = `
+//       delete from AttendanceEntry where TrDate = '${trdate}' AND EntryNo = '${entryNo}';
+
+//       INSERT INTO AttendanceEntry (
+//           EntryNo, 
+//           TrDate, 
+//           EmpTypeCode, 
+//           GangCode, 
+//           DeptCode, 
+//           YearCode, 
+//           CompCode, 
+//           USERID,  
+//           EmpCode, 
+//           PresentYN
+//       ) VALUES ${values}`;
+
+//   sql.query(query, (err, result) => {
+//       if (err) {
+//           console.log('Error:', err);
+//           console.log('query:', query);
+//           res.status(500).json({ error: 'Internal server error' });
+//       } else {
+//           res.json({ message: 'Data saved successfully' });
+//       }
+//   });
+// });
+app.post('/api/AttendanceEntriesPost/:entryNo/:gangCode/:trdate', (req, res) => {
+  const gangCode = req.params.gangCode;
   const entryNo = req.params.entryNo;
+  const trdate = req.params.trdate;
   const requestData = req.body;
   const values = requestData.map(entry => `(
       '${entryNo}', 
@@ -8418,7 +8474,7 @@ app.post('/api/AttendanceEntriesPost/:entryNo', (req, res) => {
   )`).join(',');
 
   let query = `
-      delete from AttendanceEntry where EntryNo = '${entryNo}';
+      delete from AttendanceEntry where GangCode = '${gangCode}' AND Trdate = '${trdate}';
 
       INSERT INTO AttendanceEntry (
           EntryNo, 
@@ -9692,4 +9748,3 @@ app.delete('/api/slab/:SlabCode', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
