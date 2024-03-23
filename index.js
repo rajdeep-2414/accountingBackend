@@ -8412,7 +8412,9 @@ app.get('/api/attendance', (req, res) => {
   });
 });
 
-// app.post('/api/AttendanceEntriesPost/:entryNo/:trdate', (req, res) => {
+
+// app.post('/api/AttendanceEntriesPost/:entryNo/:gangCode/:trdate', (req, res) => {
+//   const gangCode = req.params.gangCode;
 //   const entryNo = req.params.entryNo;
 //   const trdate = req.params.trdate;
 //   const requestData = req.body;
@@ -8429,9 +8431,7 @@ app.get('/api/attendance', (req, res) => {
 //       ${entry.Checked}
 //   )`).join(',');
 
-//   let query = `
-//       delete from AttendanceEntry where TrDate = '${trdate}' AND EntryNo = '${entryNo}';
-
+//   let insertQuery = `
 //       INSERT INTO AttendanceEntry (
 //           EntryNo, 
 //           TrDate, 
@@ -8445,6 +8445,20 @@ app.get('/api/attendance', (req, res) => {
 //           PresentYN
 //       ) VALUES ${values}`;
 
+//       let query = `
+//       BEGIN
+//           DELETE FROM AttendanceEntry
+//           WHERE EntryNo = ${entryNo} AND GangCode = ${gangCode} AND Trdate = '${trdate}'
+  
+//           IF @@ROWCOUNT = 0
+//           BEGIN
+//               DELETE FROM AttendanceEntry WHERE GangCode = ${gangCode} AND Trdate = '${trdate}'
+//           END
+  
+//           ${insertQuery}
+//       END`;
+  
+
 //   sql.query(query, (err, result) => {
 //       if (err) {
 //           console.log('Error:', err);
@@ -8455,8 +8469,9 @@ app.get('/api/attendance', (req, res) => {
 //       }
 //   });
 // });
-app.post('/api/AttendanceEntriesPost/:entryNo/:gangCode/:trdate', (req, res) => {
-  const gangCode = req.params.gangCode;
+
+
+app.post('/api/AttendanceEntriesPost/:entryNo/:trdate', (req, res) => {
   const entryNo = req.params.entryNo;
   const trdate = req.params.trdate;
   const requestData = req.body;
@@ -8474,7 +8489,7 @@ app.post('/api/AttendanceEntriesPost/:entryNo/:gangCode/:trdate', (req, res) => 
   )`).join(',');
 
   let query = `
-      delete from AttendanceEntry where GangCode = '${gangCode}' AND Trdate = '${trdate}';
+      delete from AttendanceEntry where EntryNo = ${entryNo} AND  Trdate = '${trdate}';
 
       INSERT INTO AttendanceEntry (
           EntryNo, 
