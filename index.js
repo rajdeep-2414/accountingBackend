@@ -9205,6 +9205,117 @@ app.delete('/api/TGDEntry/:EntryNo', async (req, res) => {
 }); 
 
 
+//For Direct Despatch Entry
+app.post('/api/DD/:EntryNo', (req, res) => {
+  const entryNo = req.params.EntryNo;
+  const requestData = req.body;
+  const values = requestData.map(entry => `(
+    ${entryNo}, 
+    '${entry.TrDate}', 
+    ${entry.ProductCode},
+    ${entry.YojanaCode? entry.YojanaCode : entry.editRoomId},
+    ${entry.ShopCode ? entry.ShopCode : entry.PartyCode}, 
+    ${entry.GangCode}, 
+    ${entry.HamaliTypeCode},
+    ${entry.Qty}, 
+    ${entry.Weight}, 
+    ${entry.PermitNo}, 
+    '${entry.PermitDate}', 
+    '${entry.PermitMonth}', 
+    '${entry.VehicleCode}',
+    ${entry.DeptCode},
+    ${entry.YearCode},
+    ${entry.CompCode ? entry.CompCode: entry.Compcode},
+    ${entry.UserID},
+    ${entry.editRoomId? entry.editRoomId: entry.DesptachEntryNo},
+    'DD'
+    )`).join(',');
+
+let query = `
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'DD';
+
+    INSERT INTO RRWagonEntry (
+      EntryNo,
+      TrDate,
+      ProductCode,
+      YojanaCode,
+      PartyCode,
+      GangCode,
+      HamaliTypeCode,
+      Qty,
+      Weight,
+      PermitNo,
+      PermitDate,
+      PermitMonth,
+      VehicleCode,
+      DeptCode,
+      YearCode,
+      Compcode,
+      UserID,
+      DesptachEntryNo,
+      Flag
+    ) VALUES ${values};`;
+
+
+  sql.query(query, (err, result) => {
+      if (err) {
+          console.log('Error:', err);
+          console.log('query:', query);
+
+          res.status(500).json({ error: 'Internal server error' });
+      } else {
+          res.json({ message: 'Data saved successfully' });
+      }
+  });
+});
+
+app.delete('/api/DD/:EntryNo', async (req, res) => {
+  const EntryNo = req.params.EntryNo;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowEntryDelete } = userResults.recordset[0];
+
+        if (AllowEntryDelete === 1) {
+          // The user has permission to delete entries
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='DD'`;
+
+          try {
+            await sql.query(query);
+            res.json({ message: 'Success' });
+          } catch (error) {
+            console.log('Error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          }
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}); 
+
+
  // For DeductionEntry
 // Fetch DeductionEntry
 app.get('/api/DeductionEntry/:DeptCode/:CompCode/:YearCode', (req, res) => {
