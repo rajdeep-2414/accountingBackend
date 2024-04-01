@@ -2767,9 +2767,11 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     sql.query(query, (err) => {
       if (err) {
         console.log('Error:', err);
+        console.log('query:', query);
         res.status(500).json({ error: 'Internal server error' });
       } else {
         res.json({ message: 'SubLedgerMaster created successfully' });
+        console.log('query:', query);
       }
     });
   });
@@ -2807,13 +2809,15 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       StateCode='${StateCode}', PhoneNo='${PhoneNo}', MobileNo='${MobileNo}', Email='${Email}',
       AadharCardNo='${AadharCardNo}', BankName=N'${BankName}', BankAcNo='${BankAcNo}', PANo='${PANo}',
       GSTNO='${GSTNO}', Remark1=N'${Remark1}', Remark2=N'${Remark2}', Remark3=N'${Remark3}',
-      StatusCode='${StatusCode}', USERID='${USERID}'
+      StatusCode=${StatusCode}, USERID='${USERID}'
       WHERE SubAcCode='${SubAcCode}';
   `;
 
     sql.query(query, (err, result) => {
       if (err) {
         console.log('Error:', err);
+        console.log('query:', query);
+
         res.status(500).json({ error: 'Internal server error' });
       } else {
         if (result.rowsAffected && result.rowsAffected[0] > 0) {
@@ -2822,6 +2826,8 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
             SubAcCode,
             // ... (other fields)
           });
+        console.log('query:', query);
+
         } else {
           res.status(404).json({ error: 'Record not found' });
         }
@@ -4673,7 +4679,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       entryNo,
       trDate,
       acCode,
-      subLedgerGroupCode,
+      subLedgerGrpCode,
       subAcCode,
       crAmt,
       drAmt,
@@ -4701,7 +4707,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     }
 
     query += `)
-      VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGroupCode}', '${subAcCode}', '${crAmt}', '${drAmt}',${DeptCode},${YearCode},${CompCode},${UserID},${uniqueCode}`;
+      VALUES ('${entryNo}', '${trDate}', '${flag}', '${acCode}', '${subLedgerGrpCode}', '${subAcCode}', '${crAmt}', '${drAmt}',${DeptCode},${YearCode},${CompCode},${UserID},${uniqueCode}`;
 
     // Conditionally add the values for chqNo and narration1
     if (chqNo) {
@@ -4784,7 +4790,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       trDate,
       flag,
       acCode,
-      subLedgerGroupCode,
+      subLedgerGrpCode,
       subAcCode,
       crAmt,
       drAmt,
@@ -4803,7 +4809,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       }
        const updateQuery = `
           UPDATE TranEntryTempSub
-          SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGroupCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE COMPUTERID=${uniqueCode};`;
+          SET TrDate='${trDate}', Flag='${flag}', AcCode='${acCode}', SubLedgerGroupCode='${subLedgerGrpCode}', SubAcCode='${subAcCode}', CrAmt='${crAmt}', DrAmt='${drAmt}'${chqNo ? `, ChqNo='${chqNo}'` : ''}${narration1 ? `, Narration1='${narration1}'` : ''} WHERE COMPUTERID=${uniqueCode};`;
       // Execute the update query
       sql.query(updateQuery, (err, result) => {
         if (err) {
@@ -4820,7 +4826,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
             trDate,
             flag,
             acCode,
-            subLedgerGroupCode,
+            subLedgerGrpCode,
             subAcCode,
             crAmt,
             drAmt,
