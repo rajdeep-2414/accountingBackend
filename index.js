@@ -62,6 +62,7 @@ const dbConfig = {
   user: 'Well1',
   password: 'well228608',
   server: 'hamalisangh.cduuaiiygwxk.ap-south-1.rds.amazonaws.com',
+  // server: 'sanghinstance.chasw9cgenor.ap-south-1.rds.amazonaws.com',
   port: 1857, 
   options: {
     encrypt: true, 
@@ -71,6 +72,9 @@ const dbConfig = {
 
 const defaultDatabase = 'GapCompany'; // Default database name
 // const defaultDatabase = 'GapData1FY2324'; // Default database name
+// const defaultDatabase = 'GapData1FY2324OLD'; // Default database name
+
+
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -111,8 +115,9 @@ connectToDatabase(defaultDatabase)
     if (!companyCode || !financialYear) {
       return res.status(400).json({ error: 'Company code and financial year are required' });
     }
-  
+    
     const databaseName = `GapData${companyCode}FY${financialYear}`;
+    // const databaseName = `GapData1FY2324OLD`;
     console.log('GapData${companyCode}-${financialYear}',`GapData${companyCode}FY${financialYear}`);
     // const databaseName = `GapData${companyCode}`;
   
@@ -4645,7 +4650,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       WHERE Flag = '${flag}'AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND CompCode = ${CompCode}`;
       console.log("getMaxEntryNoQuery",getMaxEntryNoQuery);
       const maxEntryNoResult = await sql.query(getMaxEntryNoQuery);
-      const maxEntryNo = maxEntryNoResult.recordset[0]?.MaxEntryNo || 1;
+      const maxEntryNo = maxEntryNoResult.recordset[0]?.MaxEntryNo || 0;
       console.log("maxEntryNo",maxEntryNo);
       console.log("maxEntryNo",maxEntryNo + 1);
 
@@ -4908,9 +4913,9 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         // Check if user results are not empty
         if (userResults.recordset && userResults.recordset.length > 0) {
           // Check if user has permission to delete entries
-          const { AllowMasterDelete } = userResults.recordset[0];
+          const { AllowEntryDelete } = userResults.recordset[0];
   
-          if (AllowMasterDelete === 1) {
+          if (AllowEntryDelete === 1) {
             // The user has permission to delete entries
             const deleteQuery = `DELETE FROM TranEntryTempSub WHERE COMPUTERID='${uniqueCode}' AND UserID='${UserID}'`;
   
@@ -4942,16 +4947,20 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
   app.post('/api/tranEntry-insertDataAndFlag', (req, res) => {
     const entryNo = req.body.entryNo;
     const flag = req.body.flag;
-
     const query = `
       DELETE FROM TranEntryTempSub;
 
-      
       INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID)
       SELECT EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID
       FROM TranEntry
       WHERE EntryNo = @entryNo AND Flag = @flag;
-    `;
+
+      DELETE FROM TranEntryTempSub 
+      WHERE EntryNo = @entryNo AND Flag = @flag AND
+          (CASE 
+              WHEN @flag = 'CR' THEN CrAmt 
+              ELSE DrAmt 
+          END) = 0;`;
 
     const request = new sql.Request();
     request.input('entryNo', sql.Int, entryNo);
