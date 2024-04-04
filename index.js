@@ -4661,8 +4661,8 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
       FROM TranEntry AS TE
       WHERE TE.EntryNo = ${operation === 'update' ? entryNo : maxEntryNo + 1} AND TE.Flag = '${flag}' AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode}';
 
-      INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID)
-      SELECT ${operation === 'update' ? entryNo : maxEntryNo + 1}, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt , DeptCode, YearCode, CompCode, UserID, COMPUTERID FROM TranEntryTempSub;
+      INSERT INTO TranEntry (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID,ChqNo,Narration1)
+      SELECT ${operation === 'update' ? entryNo : maxEntryNo + 1}, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt , DeptCode, YearCode, CompCode, UserID, COMPUTERID,ChqNo,Narration1 FROM TranEntryTempSub;
 
       DELETE TETS
       FROM TranEntryTempSub AS TETS
@@ -4865,11 +4865,11 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
         // Check if user results are not empty
         if (userResults.recordset && userResults.recordset.length > 0) {
           // Check if user has permission to delete entries
-          const { AllowMasterDelete } = userResults.recordset[0];
+          const { AllowEntryDelete } = userResults.recordset[0];
   
-          if (AllowMasterDelete === 1) {
+          if (AllowEntryDelete === 1) {
             // The user has permission to delete entries
-            const deleteQuery = `DELETE FROM TranEntry WHERE EntryNo='${entryNo}' AND Flag='${flag}'`;
+            const deleteQuery = `DELETE FROM TranEntry WHERE EntryNo=${entryNo} AND Flag='${flag}'`;
   
             sql.query(deleteQuery, (deleteErr) => {
               if (deleteErr) {
@@ -4950,17 +4950,20 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     const query = `
       DELETE FROM TranEntryTempSub;
 
-      INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID)
-      SELECT EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID
+      INSERT INTO TranEntryTempSub (EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID,ChqNo,Narration1)
+      SELECT EntryNo, TrDate, Flag, AcCode, SubLedgerGroupCode, SubAcCode, CrAmt, DrAmt, DeptCode, YearCode, CompCode, UserID,COMPUTERID,ChqNo,Narration1
       FROM TranEntry
       WHERE EntryNo = @entryNo AND Flag = @flag;
 
       DELETE FROM TranEntryTempSub 
-      WHERE EntryNo = @entryNo AND Flag = @flag AND
-          (CASE 
-              WHEN @flag = 'CR' THEN CrAmt 
-              ELSE DrAmt 
-          END) = 0;`;
+      WHERE EntryNo = @entryNo 
+        AND Flag IN ('CP', 'CR')
+        AND (
+            CASE 
+                WHEN Flag = 'CR' THEN CrAmt 
+                ELSE DrAmt 
+            END
+        ) = 0;`;
 
     const request = new sql.Request();
     request.input('entryNo', sql.Int, entryNo);
