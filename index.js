@@ -9892,3 +9892,5 @@ app.delete('/api/slab/:SlabCode', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
