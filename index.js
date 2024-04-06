@@ -4581,7 +4581,7 @@ app.use('/img', express.static('C:/Users/91942/Pictures/photopath'));
     const company = req.params.company;
 
     const query = `
-      SELECT distinct EntryNo, TrDate, Flag
+      SELECT distinct EntryNo, TrDate, Flag, CrAmt, DrAmt, Narration1
       FROM TranEntry
       WHERE Flag = @flag
         AND DeptCode = @dept
