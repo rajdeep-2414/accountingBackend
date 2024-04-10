@@ -49,8 +49,8 @@
 
   const app = express();
   app.use(bodyParser.json());
-  // app.use(cors());
-  app.use(cors({ origin: 'https://hgap1.netlify.app' }));
+  app.use(cors());
+  // app.use(cors({ origin: 'https://hgap1.netlify.app' }));
   // app.use(cookieParser());
   // app.use(session({
   //   secret: 'abcdabcd',
