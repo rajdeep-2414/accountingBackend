@@ -66,14 +66,13 @@ const dbConfig = {
   options: {
     encrypt: true,
     trustServerCertificate: true,
+    requestTimeout: 30000 
   },
 };
 
 const defaultDatabase = 'GapCompany'; // Default database name
 // const defaultDatabase = 'GapData1FY2425'; // Default database name
 // const defaultDatabase = 'GapData1FY2324OLD'; // Default database name
-
-
 
 // Connect to the default database on server startup
 connectToDatabase(defaultDatabase)
@@ -241,12 +240,12 @@ const upload = multer({
 app.post('/api/login', (req, res) => {
   const { encryptedData } = req.body;
 
-   // Decrypt the payload
-   const bytes  = CryptoJS.AES.decrypt(encryptedData, 'loginlogic');
-   const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
- 
-   const { username, password, companyCode } = decryptedData;
- 
+  // Decrypt the payload
+  const bytes = CryptoJS.AES.decrypt(encryptedData, 'loginlogic');
+  const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+
+  const { username, password, companyCode } = decryptedData;
+
   // Validate input (optional, depending on your requirements)
   const query = `
     SELECT * FROM Users
@@ -435,34 +434,34 @@ app.post('/single-upload', upload.single('image'), (req, res) => {
 });
 
 
-app.get('/file/:fileName', (req, res) => {
-  const fileName = req.params.fileName;
+// app.get('/file/:fileName', (req, res) => {
+//   const fileName = req.params.fileName;
 
-  // Check if the mapping for the file name exists
-  if (!fileMappings[fileName]) {
-    return res.status(404).send('File not found.');
-  }
+//   // Check if the mapping for the file name exists
+//   if (!fileMappings[fileName]) {
+//     return res.status(404).send('File not found.');
+//   }
 
-  // Retrieve file from S3 using the UUID-prefixed key
-  const params = {
-    Bucket: 'webgap-images',
-    Key: fileMappings[fileName]
-  };
+//   // Retrieve file from S3 using the UUID-prefixed key
+//   const params = {
+//     Bucket: 'webgap-images',
+//     Key: fileMappings[fileName]
+//   };
 
-  s3.getObject(params, (err, data) => {
-    if (err) {
-      console.error("Error getting object: ", err);
-      return res.status(500).send('Error getting file from S3.');
-    }
+//   s3.getObject(params, (err, data) => {
+//     if (err) {
+//       console.error("Error getting object: ", err);
+//       return res.status(500).send('Error getting file from S3.');
+//     }
 
-    // Set response headers based on file metadata
-    res.set('Content-Type', data.ContentType);
-    res.set('Content-Disposition', `attachment; filename="${fileName}"`);
+//     // Set response headers based on file metadata
+//     res.set('Content-Type', data.ContentType);
+//     res.set('Content-Disposition', `attachment; filename="${fileName}"`);
 
-    // Send the file data as response
-    res.send(data.Body);
-  });
-});
+//     // Send the file data as response
+//     res.send(data.Body);
+//   });
+// });
 
 app.delete('/deletefile/:filename', (req, res) => {
   const params = {
@@ -3091,7 +3090,7 @@ app.delete('/api/tranItMaster/:DeptCode/:ItCode', authenticateToken, async (req,
 
 //TranLedgerMaster
 // GET all TranLedgerMaster entries
-app.get('/api/tranledgers', authenticateToken, (req, res) => {
+app.get('/api/tranledgers1', authenticateToken, (req, res) => {
   const query = 'SELECT * FROM TranLedgerMaster';
   sql.query(query, (err, result) => {
     if (err) {
@@ -3104,7 +3103,7 @@ app.get('/api/tranledgers', authenticateToken, (req, res) => {
 });
 
 // POST a new TranLedgerMaster entry
-app.post('/api/tranledgers', authenticateToken, (req, res) => {
+app.post('/api/tranledgers1', authenticateToken, (req, res) => {
   const {
     AcCode,
     OpBal,
@@ -3131,7 +3130,7 @@ app.post('/api/tranledgers', authenticateToken, (req, res) => {
 });
 
 // PUT (Update) an existing TranLedgerMaster entry
-app.put('/api/tranledgers/:AcCode', authenticateToken, (req, res) => {
+app.put('/api/tranledgers1/:AcCode', authenticateToken, (req, res) => {
   const { AcCode } = req.params;
   const {
     OpBal,
@@ -3175,7 +3174,7 @@ app.put('/api/tranledgers/:AcCode', authenticateToken, (req, res) => {
 });
 
 // DELETE a TranLedgerMaster entry
-app.delete('/api/tranledgers/:AcCode', authenticateToken, async (req, res) => {
+app.delete('/api/tranledgers1/:AcCode', authenticateToken, async (req, res) => {
   const { AcCode } = req.params;
   const UserName = req.headers['username'];
 
@@ -3358,7 +3357,7 @@ app.delete('/api/ledgerentries/:acCode', authenticateToken, async (req, res) => 
 
 //TranSubLedger entries
 // Get all TranSubLedger entries
-app.get('/api/tranSubLedgers', authenticateToken, (req, res) => {
+app.get('/api/tranSubLedgers1', authenticateToken, (req, res) => {
   const query = 'SELECT * FROM TranSubLedgerMaster';
   sql.query(query, (err, result) => {
     if (err) {
@@ -3371,7 +3370,7 @@ app.get('/api/tranSubLedgers', authenticateToken, (req, res) => {
 });
 
 // Create a new TranSubLedger entry
-app.post('/api/tranSubLedgers', authenticateToken, (req, res) => {
+app.post('/api/tranSubLedgers1', authenticateToken, (req, res) => {
   const {
     AcCode,
     SubAcCode,
@@ -3400,7 +3399,7 @@ app.post('/api/tranSubLedgers', authenticateToken, (req, res) => {
 });
 
 // Update a TranSubLedger entry
-app.put('/api/tranSubLedgers/:acCode', authenticateToken, (req, res) => {
+app.put('/api/tranSubLedgers1/:acCode', authenticateToken, (req, res) => {
   const { acCode } = req.params;
   const {
     SubAcCode,
@@ -3447,7 +3446,7 @@ app.put('/api/tranSubLedgers/:acCode', authenticateToken, (req, res) => {
 });
 
 // Delete a TranSubLedger entry
-app.delete('/api/tranSubLedgers/:acCode', authenticateToken, async (req, res) => {
+app.delete('/api/tranSubLedgers1/:acCode', authenticateToken, async (req, res) => {
   const { acCode } = req.params;
   const UserName = req.headers['username'];
 
@@ -4342,7 +4341,7 @@ app.get('/api/tranNewEntries', authenticateToken, (req, res) => {
 
 
 app.post('/api/Savetranentries', authenticateToken, async (req, res) => {
-  const { flag, DeptCode, YearCode, CompCode, entryNo, operation, requestData } = req.body;
+  const { flag, DeptCode, YearCode, CompCode, entryNo, operation, requestData, TrDate, CashOrTr } = req.body;
 
   const getMaxEntryNoQuery = `
     SELECT MAX(CAST(EntryNo AS INT)) AS MaxEntryNo
@@ -4356,21 +4355,22 @@ app.post('/api/Savetranentries', authenticateToken, async (req, res) => {
 
   const values = requestData.map(entry => `(
       '${operation === 'update' ? entry.EntryNo : maxEntryNo + 1}', 
-      '${entry.TrDate}', 
+      '${TrDate}', 
       '${entry.Flag}',
       '${entry.AcCode}',
       '${entry.SubAcCode}',
       ${entry.CrAmt},
       ${entry.DrAmt},
-      '${entry.ChqNo}',
-      '${entry.Narration1}',
-      '${entry.Narration2}',
-      '${entry.Narration3}',
-      '${entry.SubLedgerGroupCode}',
+      '${entry.ChqNo || 0}',
+      N'${entry.Narration1}',
+      N'${entry.Narration2}',
+      N'${entry.Narration3}',
+      ${entry.SubLedgerGroupCode},
       '${entry.DeptCode}',
       '${entry.YearCode}',
       '${entry.CompCode}',
       '${entry.UserID}',
+      '${CashOrTr}',
       '${entry.uniqueCode ? entry.uniqueCode : entry.COMPUTERID}'
       )`).join(',');
   // Assuming you have access to a SQL instance through a 'sql' object
@@ -4396,6 +4396,7 @@ app.post('/api/Savetranentries', authenticateToken, async (req, res) => {
         YearCode,
         CompCode,
         UserID,
+        CashOrTr,
         COMPUTERID
       ) VALUES ${values};`;
 
@@ -4833,8 +4834,8 @@ app.post('/api/SaveBillentries', authenticateToken, async (req, res) => {
   });
 });
 
-app.delete('/api/NewSelltries/:entryNo/:flag', authenticateToken, async (req, res) => {
-  const { entryNo, flag } = req.params;
+app.delete('/api/NewSelltries/:entryNo/:flag/:CompCode/:DeptCode/:YearCode', authenticateToken, async (req, res) => {
+  const { entryNo, flag, CompCode, DeptCode, YearCode } = req.params;
   const UserName = req.headers['username'];
 
   try {
@@ -4856,9 +4857,9 @@ app.delete('/api/NewSelltries/:entryNo/:flag', authenticateToken, async (req, re
         if (AllowMasterDelete === 1) {
           // The user has permission to delete entries
           const deleteQuery = `
-              DELETE FROM BillSub  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
-              DELETE FROM BillEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
-              DELETE FROM TranEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}';
+              DELETE FROM BillSub  WHERE EntryNo='${entryNo}' AND Flag='${flag}' AND CompCode=${CompCode} AND DeptCode=${DeptCode} AND YearCode=${YearCode};
+              DELETE FROM BillEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}' AND CompCode=${CompCode} AND DeptCode=${DeptCode} AND YearCode=${YearCode};
+              DELETE FROM TranEntry  WHERE EntryNo='${entryNo}' AND Flag='${flag}' AND CompCode=${CompCode} AND DeptCode=${DeptCode} AND YearCode=${YearCode};
             `;
 
           sql.query(deleteQuery, (deleteErr) => {
@@ -4998,7 +4999,7 @@ app.post('/api/sellentriesPost', authenticateToken, (req, res) => {
 
   let query = `
       INSERT INTO BillsubTemp (flag, EntryNo, TrDate, AcCode, ItCode, BillNo, BillDate, Desc1, Desc2,  MRP, Qty, Rate, Amount, DiscAmt, TaxableAmt, GSTRateCode, GstRate, CGSTAmt, SGSTAmt, IGSTAmt, RoundOff, NetAmt, DeptCode, YearCode, CompCode, USERID, COMPUTERID) 
-      VALUES ('${flag}','${entryNo}', '${trDate}', ${AcCode}, '${ItCode}','${BillNo}','${BillDate}','${Desc1}','${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}',${CompCode},'${USERID}',${uniqueCode})`;
+      VALUES ('${flag}','${entryNo}', '${trDate}', ${AcCode}, '${ItCode}','${BillNo}','${BillDate}',N'${Desc1}',N'${Desc2}',  '${MRP}', '${Qty}', '${Rate}', '${Amount}', '${DiscAmt}', '${TaxableAmt}', '${GstRateCode}','${GstRate}', '${CGstAmt}', '${SGstAmt}', '${IGstAmt}', '${RoundOff}','${NetAmt}','${DeptCode}','${YearCode}',${CompCode},'${USERID}',${uniqueCode})`;
 
   sql.query(query, (err) => {
     if (err) {
@@ -5115,9 +5116,9 @@ app.put('/api/NewSaleEntries/:entryNo/:uniqueCode/:flag', authenticateToken, (re
   });
 });
 
-app.delete('/api/billsubtempentries/:entryNo/:YearCode', authenticateToken, (req, res) => {
-  const { entryNo, YearCode } = req.params;
-  const query = `DELETE FROM BillSubTemp WHERE EntryNo=${entryNo} AND YearCode=${YearCode}`;
+app.delete('/api/billsubtempentries/:entryNo/:CompCode/:DeptCode/:YearCode', authenticateToken, (req, res) => {
+  const { CompCode, DeptCode, YearCode, entryNo } = req.params;
+  const query = `DELETE FROM BillSubTemp WHERE EntryNo=${entryNo} AND CompCode=${CompCode} AND DeptCode=${DeptCode} AND YearCode=${YearCode}`;
   sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
@@ -5420,7 +5421,7 @@ app.delete('/api/qual/:QualificationCode', authenticateToken, async (req, res) =
 
 // GET all gang
 app.get('/api/gang', authenticateToken, (req, res) => {
-  const query = 'SELECT * FROM GangMaster ORDER BY Gangcode';
+  const query = 'SELECT * FROM GangMaster';
   sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
@@ -5811,6 +5812,392 @@ app.get('/api/DayBook', authenticateToken, (req, res) => {
   });
 });
 
+
+
+// Define the API endpoint to initialize TmpDayBook1 and TmpDayBook2
+app.get('/api/initDayBook', authenticateToken, (req, res) => {
+  const { startDate, endDate } = req.query;
+  const query = `
+  Truncate Table TmpDayBook1;
+  insert into TmpDayBook1 (SrNo, Trdate, Flag, LAcCode, LAcHead, LAmt, LSubAcCode, entryno, lcashamt, ltramt, LsubAmt, REntryno)
+  select 0, a.TrDate, a.Flag, a.AcCode, b.achead, sum(a.CrAmt) as CrAmt, 0, 0, 0, 0, 0, 0
+  from TranEntry as a
+  join LedgerMaster as b on a.AcCode = b.AcCode
+  join SubLedgerMaster as c on a.SubAcCode = c.SubAcCode and a.SubLedgerGroupCode = c.SubLedgerGroupCode
+  where a.AcCode <> 1 and CrAmt > 0 and a.TrDate >= @StartDate and a.TrDate <= @EndDate and a.DeptCode = 1
+  group by a.Trdate, a.AcCode, b.AcHead, a.Flag;
+
+  insert into TmpDayBook1 (SrNo, Trdate, Flag, LsubAcCode, LsubAcHead, LCashAmt, LTRAmt, LAcCode, LsubAmt, LAmt, LNarration1, Entryno, RFlag, REntryno)
+  select 0, a.TrDate, a.Flag, a.SubAcCode,c.subachead, a.CrAmt, 0, a.AcCode, 0, 0, a.Narration1, a.entryno, '', 0
+  from TranEntry as a
+  join LedgerMaster as b on a.AcCode = b.AcCode
+  join SubLedgerMaster as c on a.SubAcCode = c.SubAcCode and a.SubLedgerGroupCode = c.SubLedgerGroupCode
+  where a.AcCode <> 1 and CrAmt > 0 and a.CashOrTr = 0 and a.TrDate >= @StartDate and a.TrDate <= @EndDate and a.DeptCode = 1
+  order by a.Trdate, a.AcCode, b.AcHead, a.Flag;
+
+  insert into TmpDayBook1 (SrNo, Trdate, Flag, LsubAcCode, LsubAcHead, LCashAmt, LTRAmt, LAcCode, LsubAmt, LAmt, LNarration1, Entryno, RFlag, REntryno)
+  select 0, a.TrDate, a.Flag, a.SubAcCode, c.subachead, 0, a.CrAmt, a.AcCode, 0, 0, a.Narration1, a.entryno, '', 0
+  from TranEntry as a
+  join LedgerMaster as b on a.AcCode = b.AcCode
+  join SubLedgerMaster as c on a.SubAcCode = c.SubAcCode and a.SubLedgerGroupCode = c.SubLedgerGroupCode
+  where a.AcCode <> 1 and CrAmt > 0 and a.CashOrTr = 1 and a.TrDate >= @StartDate and a.TrDate <= @EndDate and a.DeptCode = 1
+  order by a.Trdate, a.AcCode, b.AcHead, a.Flag;
+
+  Truncate Table TmpDayBook2;
+  insert into TmpDayBook2 (SrNo, Trdate, Flag, RAcCode, RAcHead, RAmt, RSubAcCode, entryno, rcashamt, rtramt, rsubamt, REntryno, RFlag)
+  select 0, a.TrDate, a.Flag, a.AcCode, b.achead, sum(a.DrAmt) as DrAmt, 0, 0, 0, 0, 0, 0, ''
+  from TranEntry as a
+  join LedgerMaster as b on a.AcCode = b.AcCode
+  join SubLedgerMaster as c on a.SubAcCode = c.SubAcCode and a.SubLedgerGroupCode = c.SubLedgerGroupCode
+  where a.AcCode <> 1 and DrAmt > 0 and a.TrDate >= @StartDate and a.TrDate <= @EndDate and a.DeptCode = 1
+  group by a.Trdate, a.AcCode, b.AcHead, a.Flag;
+
+  insert into TmpDayBook2 (SrNo, Trdate, Flag, RsubAcCode, RsubAcHead, RCashAmt, RTRAmt, RAcCode, rsubamt, Ramt, RNarration1, REntryno, RFlag)
+  select 0, a.TrDate, a.Flag, a.SubAcCode, c.subachead, a.DrAmt, 0, a.AcCode, 0, 0, a.Narration1, a.entryno, a.Flag
+  from TranEntry as a
+  join LedgerMaster as b on a.AcCode = b.AcCode
+  join SubLedgerMaster as c on a.SubAcCode = c.SubAcCode and a.SubLedgerGroupCode = c.SubLedgerGroupCode
+  where a.AcCode <> 1 and DrAmt > 0 and a.CashOrTr = 0 and a.TrDate >= @StartDate and a.TrDate <= @EndDate and a.DeptCode = 1
+  order by a.Trdate, a.AcCode, b.AcHead, a.Flag;
+
+  insert into TmpDayBook2 (SrNo, Trdate, Flag, RsubAcCode, RsubAcHead, RCashAmt, RTRAmt, RAcCode, rsubamt, Ramt, RNarration1, REntryno, RFlag)
+  select 0, a.TrDate, a.Flag, a.SubAcCode, c.subachead, 0, a.DrAmt, a.AcCode, 0, 0, a.Narration1, a.entryno, a.Flag
+  from TranEntry as a
+  join LedgerMaster as b on a.AcCode = b.AcCode
+  join SubLedgerMaster as c on a.SubAcCode = c.SubAcCode and a.SubLedgerGroupCode = c.SubLedgerGroupCode
+  where a.AcCode <> 1 and DrAmt > 0 and a.CashOrTr = 1 and a.TrDate >= @StartDate and a.TrDate <= @EndDate and a.DeptCode = 1
+  order by a.Trdate, a.AcCode, b.AcHead, a.Flag;
+  `;
+
+  const request = new sql.Request();
+  request.input('StartDate', sql.NVarChar, startDate);
+  request.input('EndDate', sql.NVarChar, endDate);
+
+  request.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'TmpDayBooks initialized' });
+    }
+  });
+});
+
+
+app.get('/api/openingBal', authenticateToken, (req, res) => {
+  const { CompCode, DeptCode, YearCode, startDate } = req.query;
+
+  const query = `
+    DECLARE @return_value int;
+
+      EXEC @return_value = [dbo].[ProcLedgerBalance]
+          @CompCode = @CompCode,
+          @DeptCode = @DeptCode,
+          @YearCode = @YearCode,
+          @Accode = 1,
+          @Trdate = @Trdate;
+
+      SELECT @return_value as ReturnValue;`;
+  const request = new sql.Request();
+  request.input('CompCode', sql.Int, CompCode);
+  request.input('DeptCode', sql.Int, DeptCode);
+  request.input('YearCode', sql.Int, YearCode);
+  request.input('Trdate', sql.Date, startDate);
+  request.query(query, (err, result) => {
+    if (err) {
+      console.error('Error executing query:', err);
+      return res.status(500).json({ error: 'Internal server error', details: err.message });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+
+app.get('/api/ClosingBal', authenticateToken, (req, res) => {
+  const { CompCode, DeptCode, YearCode, endDate } = req.query;
+
+  const query = `
+      DECLARE @return_value int;
+
+      EXEC @return_value = [dbo].[ProcLedgerBalance]
+          @CompCode = @CompCode,
+          @DeptCode = @DeptCode,
+          @YearCode = @YearCode,
+          @Accode = 1,
+          @Trdate = @Trdate;
+      SELECT @return_value as ReturnValue;`;
+
+  const request = new sql.Request();
+  request.input('CompCode', sql.Int, CompCode);
+  request.input('DeptCode', sql.Int, DeptCode);
+  request.input('YearCode', sql.Int, YearCode);
+  request.input('Trdate', sql.Date, endDate); // Ensure date format matches SQL Server expectations
+  // request.output('return_value', sql.Int);
+
+  request.query(query, (err, result) => {
+    if (err) {
+      console.error('Error executing query:', err);
+      return res.status(500).json({ error: 'Internal server error', details: err.message });
+    } else {
+      res.json(result.recordset);
+
+    }
+  });
+});
+
+
+
+app.get('/api/DayBook1', authenticateToken, (req, res) => {
+  const query = 'SELECT * FROM TmpDayBook1 order by Trdate,LAcCode,LsubAcCode';
+
+  const request = new sql.Request();
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// Define the API endpoint to fetch data from TmpDayBook2
+app.get('/api/DayBook2', authenticateToken, (req, res) => {
+  const query = 'SELECT * FROM TmpDayBook2 order by Trdate,RAcCode,RsubAcCode';
+
+  const request = new sql.Request();
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/trialBalance1', authenticateToken, (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  const query = `
+    SELECT Accode, achead, SUM(cramt) AS CrAmt, 0 AS DrAmt 
+    FROM Viewtranentries 
+    WHERE cramt > 0 AND trdate >= @startDate AND trdate <= @endDate AND deptcode = 1 AND compcode = 1 
+    GROUP BY accode, achead
+  `;
+
+  const request = new sql.Request();
+  request.input('startDate', sql.Date, startDate);
+  request.input('endDate', sql.Date, endDate);
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/trialBalance2', authenticateToken, (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  const query = `
+    SELECT Accode, achead, 0 AS CrAmt, SUM(Dramt) AS DrAmt 
+    FROM Viewtranentries 
+    WHERE DrAmt > 0 AND trdate >= @startDate AND trdate <= @endDate AND deptcode = 1 AND compcode = 1 
+    GROUP BY accode, achead
+  `;
+
+  const request = new sql.Request();
+  request.input('startDate', sql.Date, startDate);
+  request.input('endDate', sql.Date, endDate);
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/initBalancesheet', authenticateToken, (req, res) => {
+  const { startDate, endDate, CompCode, DeptCode, YearCode } = req.query;
+  const query = `
+  update TranLedgerMaster set topbal = 0,TCredit=0,TDebit=0,TCurBal=0 where compcode = ${CompCode} and deptcode = ${DeptCode}
+
+  UPDATE tranledgermaster
+  SET topbal = subquery.opbal,
+      TCredit = subquery.CrAmt,
+      TDebit = subquery.DrAmt,
+      TCurBal = subquery.ClBal
+  FROM (
+      SELECT a.Accode,
+            SUM(a.opbal) AS opbal,
+            SUM(a.cramt) AS CrAmt,
+            SUM(a.dramt) AS DrAmt,
+            SUM(a.opbal) + SUM(a.cramt) - SUM(a.dramt) AS ClBal
+      FROM Viewtranentries AS a
+      WHERE a.trdate <= '${endDate}'
+        AND a.deptcode = ${DeptCode}
+        AND a.compcode = ${CompCode}
+      GROUP BY a.Accode
+  ) AS subquery
+  WHERE tranledgermaster.Accode = subquery.Accode;
+
+
+  update TranLedgerMaster set  TCurBal = TCurBal - TOpBal where accode in (select accode from LedgerMaster where AcGroupCode in 
+  (select AcGroupCode from AcGroupMaster where AcGroupType <> 3));
+
+  update TranLedgerMaster set topbal = (select sum(a.Topbal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode} 
+  and a.Accode in (select accode from ledgermaster where AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType = 1))) * -1
+  where (TranLedgerMaster.accode =    164);
+
+  update TranLedgerMaster set topbal = (select sum(a.Topbal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode} 
+  and a.Accode in (select accode from ledgermaster where AcCode <> 164 And AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType = 1)))
+  where (TranLedgerMaster.accode =    165);
+
+  update TranLedgerMaster set TCurBal = (select sum(a.TCurBal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode}
+  and a.Accode in (select accode from ledgermaster where AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType = 1))) * -1 
+  where (TranLedgerMaster.accode =    164);
+
+   update TranLedgerMaster set TCurBal = (select sum(a.TCurBal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode}
+  and a.Accode in (select accode from ledgermaster where AcCode <> 164 And AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType = 1))) * -1 
+  where (TranLedgerMaster.accode =    165);
+
+  update TranLedgerMaster set topbal = (select sum(a.Topbal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode} 
+  and a.Accode in (select accode from ledgermaster where AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType = 2))) * -1 
+  where (TranLedgerMaster.accode =  33);
+
+  update TranLedgerMaster set topbal = (select sum(a.Topbal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode} 
+  and a.Accode in (select accode from ledgermaster where AcCode <> 165 And AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType in (1,2)))) 
+  where (TranLedgerMaster.accode =    166);
+
+  update TranLedgerMaster set TCurBal = (select sum(a.TCurBal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode} 
+  and a.Accode in (select accode from ledgermaster where accode = 166 or AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType in (1,2)))) * -1  
+  where (TranLedgerMaster.accode = 33);
+
+    update TranLedgerMaster set TCurBal = (select sum(a.TCurBal) as opbal from TranLedgerMaster as a where  A.deptcode = ${DeptCode} and A.compcode = ${CompCode} 
+  and a.Accode in (select accode from ledgermaster where AcCode <> 165 And AcGroupCode in (select AcGroupCode from AcGroupMaster where AcGroupType in (1,2))))
+  where (TranLedgerMaster.accode =    166);
+  `;
+
+  const request = new sql.Request();
+  request.input('StartDate', sql.NVarChar, startDate);
+  request.input('EndDate', sql.NVarChar, endDate);
+
+  request.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+      console.log('query:', query);
+    } else {
+      res.json({ message: 'TmpDayBooks initialized' });
+      console.log('query:', query);
+    }
+  });
+});
+
+app.get('/api/Balancesheet1/:endDate/:flag', authenticateToken, (req, res) => {
+  const { endDate, flag } = req.params;
+  const { CompCode, DeptCode, YearCode } = req.query;
+
+  const query = `
+  select a.Accode,a.TOpBal as opbal,b.achead,a.TCredit as CrAmt,a.TDebit as DrAmt,a.TCurBal as ClBal,b.acgroupcode AS AcGroupCode,c.acgroupname as 
+  AcGroupName,AcGroupType as AcgroupType,AcGroupPrintPosition as AcGroupPrintPosition from TranLedgerMaster as a, Ledgermaster as b, Acgroupmaster 
+  as c  where  a.accode = b.accode and b.acgroupcode = c.acgroupcode and c.acgrouptype = ${flag} and A.deptcode = ${DeptCode} and A.compcode = ${CompCode} and c.yearcode = 1 
+  order by c.AcGroupType,c.AcGroupPrintPosition,a.accode
+  `;
+
+  const request = new sql.Request();
+  // request.input('startDate', sql.Date, startDate);
+  request.input('endDate', sql.Date, endDate);
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/Balancesheet2/:endDate/:flag', authenticateToken, (req, res) => {
+  const { endDate, flag } = req.params;
+  const { CompCode, DeptCode, YearCode } = req.query;
+
+
+  const query = `
+   select a.Accode,a.TOpBal as opbal,b.achead,a.TCredit as CrAmt,a.TDebit as DrAmt,a.TCurBal as ClBal,b.acgroupcode AS AcGroupCode,c.acgroupname 
+   as AcGroupName,AcGroupType as AcgroupType,AcGroupPrintPosition as AcGroupPrintPosition from TranLedgerMaster as a, Ledgermaster as b, 
+   Acgroupmaster as c  where  a.accode = b.accode and b.acgroupcode = c.acgroupcode  and c.acgrouptype = ${flag} and  A.deptcode = ${DeptCode} and A.compcode = ${CompCode} 
+   and c.yearcode = 2 order by c.AcGroupType,c.AcGroupPrintPosition,a.accode
+  `;
+
+  const request = new sql.Request();
+  // request.input('startDate', sql.Date, startDate);
+  request.input('endDate', sql.Date, endDate);
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// app.get('/api/Balancesheet1', authenticateToken, (req, res) => {
+//   const { startDate, endDate, flag } = req.query;
+
+//   const query = `
+//     select a.Accode,sum(a.opbal) as opbal,a.achead,sum(a.cramt) as CrAmt,sum(a.dramt) as DrAmt,iif(max(c.acgrouptype)=3,sum(a.opbal),0) +sum(a.cramt)-sum(a.dramt) as 
+//     ClBal,MAX(b.acgroupcode) AS AcGroupCode,MAX(c.acgroupname) as AcGroupName,MAX(AcGroupType) as AcgroupType,MAX(AcGroupPrintPosition) as 
+//     AcGroupPrintPosition from Viewtranentries as a, Ledgermaster as b, Acgroupmaster as c  where  a.accode = b.accode and 
+//     b.acgroupcode = c.acgroupcode and  A.trdate <='${endDate}' and A.deptcode = 1 and A.compcode = 1 and A.deptcode = 1 and c.yearcode = 1 and c.acgrouptype = ${flag} group 
+//     by a.accode,a.Achead   order by max(c.AcGroupType),max(c.AcGroupPrintPosition),a.accode
+//   `;
+
+//   const request = new sql.Request();
+//   request.input('startDate', sql.Date, startDate);
+//   request.input('endDate', sql.Date, endDate);
+//   request.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json(result.recordset);
+//     }
+//   });
+// });
+
+// app.get('/api/Balancesheet2', authenticateToken, (req, res) => {
+//   const { startDate, endDate, flag } = req.query;
+
+//   const query = `
+//    select a.Accode,sum(a.opbal) as opbal,a.achead,sum(a.cramt) as CrAmt,sum(a.dramt) as DrAmt,iif(max(c.acgrouptype)=3,sum(a.opbal),0) +sum(a.cramt)-sum(a.dramt) as 
+//    ClBal,MAX(b.acgroupcode) AS AcGroupCode,MAX(c.acgroupname) as AcGroupName,MAX(AcGroupType) as AcgroupType,MAX(AcGroupPrintPosition) as 
+//    AcGroupPrintPosition from Viewtranentries as a, Ledgermaster as b, Acgroupmaster as c  where  a.accode = b.accode and 
+//    b.acgroupcode = c.acgroupcode and  A.trdate <='${endDate}'and A.deptcode = 1 and A.compcode = 1 and A.deptcode = 1 and c.yearcode = 0 and c.acgrouptype = ${flag} group 
+//    by a.accode,a.Achead   order by max(c.AcGroupType),max(c.AcGroupPrintPosition),a.accode
+//   `;
+
+//   const request = new sql.Request();
+//   request.input('startDate', sql.Date, startDate);
+//   request.input('endDate', sql.Date, endDate);
+//   request.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json(result.recordset);
+//     }
+//   });
+// });
+
+
 app.get('/api/ViewTranEntries', authenticateToken, (req, res) => {
   const { ledgerCode, startDate, endDate } = req.query;
   const query = `select * from viewTranentries where Accode = @Accode and  Trdate >= @StartDate AND Trdate <= @EndDate;`;
@@ -5864,8 +6251,6 @@ app.get('/api/employee', authenticateToken, (req, res) => {
   });
 });
 
-
-
 //Aadhar Upload
 app.post('/uploadAadhar', upload.single('image'), authenticateToken, (req, res) => {
   if (!req.file) {
@@ -5876,7 +6261,6 @@ app.post('/uploadAadhar', upload.single('image'), authenticateToken, (req, res) 
   console.log("AadharCard Name : ", image);
   return res.json({ Status: "Success", AadharCard: image });
 });
-
 
 //Pan Upload
 app.post('/uploadPan', upload.single('image'), authenticateToken, (req, res) => {
@@ -5889,8 +6273,6 @@ app.post('/uploadPan', upload.single('image'), authenticateToken, (req, res) => 
   return res.json({ Status: "Success", PanCard: image });
 });
 
-
-
 //RationCard Upload 
 app.post('/uploadRC', upload.single('image'), authenticateToken, (req, res) => {
   if (!req.file) {
@@ -5901,8 +6283,6 @@ app.post('/uploadRC', upload.single('image'), authenticateToken, (req, res) => {
   console.log("RationCard Name : ", image);
   return res.json({ Status: "Success", RationCard: image });
 });
-
-
 
 //License Upload 
 app.post('/uploadLicense', upload.single('image'), authenticateToken, (req, res) => {
@@ -5915,8 +6295,6 @@ app.post('/uploadLicense', upload.single('image'), authenticateToken, (req, res)
   return res.json({ Status: "Success", License: image });
 });
 
-
-
 //BirthCertificate Upload 
 app.post('/uploadBirth', upload.single('image'), authenticateToken, (req, res) => {
   if (!req.file) {
@@ -5927,7 +6305,6 @@ app.post('/uploadBirth', upload.single('image'), authenticateToken, (req, res) =
   console.log("Birth Name : ", image);
   return res.json({ Status: "Success", Birth: image });
 });
-
 
 //PolicePatil Upload 
 app.post('/uploadPolice', upload.single('image'), authenticateToken, (req, res) => {
@@ -5940,7 +6317,6 @@ app.post('/uploadPolice', upload.single('image'), authenticateToken, (req, res) 
   return res.json({ Status: "Success", PolicePatil: image });
 });
 
-
 //Agreement Upload 
 app.post('/uploadAgreement', upload.single('image'), authenticateToken, (req, res) => {
   if (!req.file) {
@@ -5951,7 +6327,6 @@ app.post('/uploadAgreement', upload.single('image'), authenticateToken, (req, re
   console.log("Agreement Name : ", image);
   return res.json({ Status: "Success", Agreement: image });
 });
-
 
 app.post('/api/employee', authenticateToken, async (req, res) => {
   const {
@@ -6505,9 +6880,11 @@ app.put('/api/empFamily/:EmpCode', authenticateToken, (req, res) => {
   sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
+      console.log('query:', query);
       res.status(500).json({ error: 'Internal server error' });
     } else {
       res.json({ message: 'EmpFamilyMember updated successfully' });
+      console.log('query:', query);
     }
   });
 });
@@ -8032,9 +8409,9 @@ app.get('/api/shop', authenticateToken, (req, res) => {
 
 // POST endpoint for inserting data
 app.post('/api/shop', authenticateToken, (req, res) => {
-  const { ShopCode, ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance, TalukaCode, Remark1, Remark2, Remark3, UserID } = req.body;
-  const query = `INSERT INTO ShopMaster (ShopCode, ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance, TalukaCode, Remark1, Remark2, Remark3, UserID) 
-                 VALUES ('${ShopCode}', N'${ShopName}', '${ShopNo}', N'${ShopAddress}', '${ShopPhone}', '${ShopDistance}', '${TalukaCode}', N'${Remark1}', N'${Remark2}', N'${Remark3}', '${UserID}')`;
+  const { ShopCode, ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance,ShopDistanceDirect, TalukaCode, Remark1, Remark2, Remark3, UserID } = req.body;
+  const query = `INSERT INTO ShopMaster (ShopCode, ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance, ShopDistanceDirect, TalukaCode, Remark1, Remark2, Remark3, UserID) 
+                 VALUES ('${ShopCode}', N'${ShopName}', '${ShopNo}', N'${ShopAddress}', '${ShopPhone}', '${ShopDistance}','${ShopDistanceDirect}', '${TalukaCode}', N'${Remark1}', N'${Remark2}', N'${Remark3}', '${UserID}')`;
   sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
@@ -8048,13 +8425,14 @@ app.post('/api/shop', authenticateToken, (req, res) => {
 // PUT endpoint for updating data
 app.put('/api/shop/:ShopCode', authenticateToken, (req, res) => {
   const { ShopCode } = req.params;
-  const { ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance, TalukaCode, Remark1, Remark2, Remark3, UserID } = req.body;
+  const { ShopName, ShopNo, ShopAddress, ShopPhone, ShopDistance,ShopDistanceDirect, TalukaCode, Remark1, Remark2, Remark3, UserID } = req.body;
   const query = `UPDATE ShopMaster 
                  SET ShopName = N'${ShopName}', 
                      ShopNo = '${ShopNo}', 
                      ShopAddress = N'${ShopAddress}', 
                      ShopPhone = '${ShopPhone}', 
                      ShopDistance = '${ShopDistance}', 
+                     ShopDistanceDirect = '${ShopDistanceDirect}',
                      TalukaCode = '${TalukaCode}', 
                      Remark1 = N'${Remark1}', 
                      Remark2 = N'${Remark2}', 
@@ -8118,10 +8496,12 @@ app.delete('/api/shop/:ShopCode', authenticateToken, async (req, res) => {
   }
 });
 
-//For GangSubMaster
+// For GangSubMaster------------------------------------------------------------------------------------
+
 // GET all gang
-app.get('/api/gangsubmaster', authenticateToken, (req, res) => {
+app.get('/api/gangsub', authenticateToken, (req, res) => {
   const query = 'SELECT * FROM GangSubMaster';
+  // const query = 'SELECT DISTINCT GangCode FROM GangSubMaster ORDER BY GangCode ASC';
   sql.query(query, (err, result) => {
     if (err) {
       console.log('Error:', err);
@@ -8132,139 +8512,38 @@ app.get('/api/gangsubmaster', authenticateToken, (req, res) => {
   });
 });
 
-//For AttendenceEntries
+// POST a new Gang
+app.post('/api/gangsub', authenticateToken, (req, res) => {
+  const { requestData, GangCode } = req.body;
+  console.log('requestData', requestData);
 
-app.get('/api/AttendanceEntries/:selectedDate', authenticateToken, (req, res) => {
-  const selectedDate = req.params.selectedDate;
-  const query = `SELECT * FROM AttendanceEntry WHERE TrDate = '${selectedDate}' ORDER BY EntryNo`;
-  sql.query(query, (err, result) => {
+  if (!requestData || !Array.isArray(requestData)) {
+    res.status(400).json({ error: 'Invalid requestData format' });
+    return;
+  }
+
+  const values = requestData.map(entry => `(${entry.GangCode}, ${entry.EmpCode}, '${entry.UserID}')`).join(',');
+  const query = `
+    DELETE FROM GangSubMaster WHERE GangCode = ${GangCode};
+
+    INSERT INTO GangSubMaster (GangCode, EmpCode, UserID)
+    VALUES ${values};
+  `;
+
+  sql.query(query, (err) => {
     if (err) {
       console.log('Error:', err);
+      console.log('query', query);
       res.status(500).json({ error: 'Internal server error' });
     } else {
-      res.json(result.recordset);
+      res.json({ message: 'Gang created successfully' });
     }
   });
 });
 
-app.get('/api/attendance', authenticateToken, (req, res) => {
-  const query = 'SELECT * FROM AttendanceEntry';
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json(result.recordset);
-    }
-  });
-});
-
-
-// app.post('/api/AttendanceEntriesPost/:entryNo/:gangCode/:trdate', authenticateToken, (req, res) => {
-//   const gangCode = req.params.gangCode;
-//   const entryNo = req.params.entryNo;
-//   const trdate = req.params.trdate;
-//   const requestData = req.body;
-//   const values = requestData.map(entry => `(
-//       '${entryNo}', 
-//       '${entry.trdate}', 
-//       '${entry.memberTypeCode}', 
-//       '${entry.gangCode}', 
-//       '${entry.DeptCode}', 
-//       '${entry.YearCode}', 
-//       '${entry.CompCode}', 
-//       '${entry.UserID}', 
-//       '${entry.EmpCode}', 
-//       ${entry.Checked}
-//   )`).join(',');
-
-//   let insertQuery = `
-//       INSERT INTO AttendanceEntry (
-//           EntryNo, 
-//           TrDate, 
-//           EmpTypeCode, 
-//           GangCode, 
-//           DeptCode, 
-//           YearCode, 
-//           CompCode, 
-//           USERID,  
-//           EmpCode, 
-//           PresentYN
-//       ) VALUES ${values}`;
-
-//       let query = `
-//       BEGIN
-//           DELETE FROM AttendanceEntry
-//           WHERE EntryNo = ${entryNo} AND GangCode = ${gangCode} AND Trdate = '${trdate}'
-
-//           IF @@ROWCOUNT = 0
-//           BEGIN
-//               DELETE FROM AttendanceEntry WHERE GangCode = ${gangCode} AND Trdate = '${trdate}'
-//           END
-
-//           ${insertQuery}
-//       END`;
-
-
-//   sql.query(query, (err, result) => {
-//       if (err) {
-//           console.log('Error:', err);
-//           console.log('query:', query);
-//           res.status(500).json({ error: 'Internal server error' });
-//       } else {
-//           res.json({ message: 'Data saved successfully' });
-//       }
-//   });
-// });
-
-
-app.post('/api/AttendanceEntriesPost/:entryNo/:trdate', authenticateToken, (req, res) => {
-  const entryNo = req.params.entryNo;
-  const trdate = req.params.trdate;
-  const requestData = req.body;
-  const values = requestData.map(entry => `(
-      '${entryNo}', 
-      '${entry.trdate}', 
-      '${entry.memberTypeCode}', 
-      '${entry.gangCode}', 
-      '${entry.DeptCode}', 
-      '${entry.YearCode}', 
-      '${entry.CompCode}', 
-      ${entry.USERID}, 
-      '${entry.EmpCode}', 
-      ${entry.Checked}
-  )`).join(',');
-
-  let query = `
-      delete from AttendanceEntry where EntryNo = ${entryNo} AND  Trdate = '${trdate}';
-
-      INSERT INTO AttendanceEntry (
-          EntryNo, 
-          TrDate, 
-          EmpTypeCode, 
-          GangCode, 
-          DeptCode, 
-          YearCode, 
-          CompCode, 
-          USERID,  
-          EmpCode, 
-          PresentYN
-      ) VALUES ${values}`;
-
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.log('Error:', err);
-      console.log('query:', query);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      res.json({ message: 'Data saved successfully' });
-    }
-  });
-});
-
-
-app.delete('/api/AttendanceEntriesDelete/:EntryNo', authenticateToken, async (req, res) => {
-  const EntryNo = req.params.EntryNo;
+// DELETE a Gang
+app.delete('/api/gangsub/:GangCode', authenticateToken, async (req, res) => {
+  const { GangCode } = req.params;
   const UserName = req.headers['username'];
 
   try {
@@ -8285,7 +8564,134 @@ app.delete('/api/AttendanceEntriesDelete/:EntryNo', authenticateToken, async (re
 
         if (AllowMasterDelete === 1) {
           // The user has permission to delete entries
-          const query = `DELETE FROM AttendanceEntry WHERE EntryNo = ${EntryNo}`;
+          const deleteQuery = `DELETE FROM GangSubMaster WHERE GangCode=${GangCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'GangSub deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+// For AttendenceEntries
+
+app.get('/api/AttendanceEntries/:Talukacode/:selectedDate', authenticateToken, (req, res) => {
+  const {selectedDate, Talukacode} = req.params;
+  const query = `SELECT * FROM AttendanceEntry WHERE TrDate = '${selectedDate}' AND Talukacode = ${Talukacode}  ORDER BY EntryNo`;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('log:', query);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/attendance', authenticateToken, (req, res) => {
+  const query = 'SELECT * FROM AttendanceEntry';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+
+app.post('/api/AttendanceEntriesPost/:entryNo/:trdate', authenticateToken, (req, res) => {
+  const entryNo = req.params.entryNo;
+  const trdate = req.params.trdate;
+  const {requestData, CompCode,YearCode,DeptCode, TalukaCode} = req.body;
+  const values = requestData.map(entry => `(
+      '${entryNo}', 
+      '${entry.trdate}', 
+      '${entry.memberTypeCode}', 
+      '${entry.gangCode}', 
+      '${entry.DeptCode}', 
+      '${entry.YearCode}', 
+      '${entry.CompCode}', 
+      '${entry.USERID}', 
+      '${entry.EmpCode}', 
+      ${entry.Checked},
+      ${TalukaCode}
+  )`).join(',');
+
+  let query = `
+      delete from AttendanceEntry where EntryNo = ${entryNo} AND  Trdate = '${trdate}' AND CompCode = ${CompCode} AND YearCode = ${YearCode}
+       AND DeptCode = ${DeptCode} AND Talukacode = ${TalukaCode};
+
+      INSERT INTO AttendanceEntry (
+          EntryNo, 
+          TrDate, 
+          EmpTypeCode, 
+          GangCode, 
+          DeptCode, 
+          YearCode, 
+          CompCode, 
+          USERID,  
+          EmpCode, 
+          PresentYN,
+          Talukacode
+      ) VALUES ${values}`;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Data saved successfully' });
+    }
+  });
+});
+
+
+app.delete('/api/AttendanceEntriesDelete/:EntryNo/:selectedDate', authenticateToken, async (req, res) => {
+  const { EntryNo, selectedDate } = req.params;
+  const UserName = req.headers['username'];
+  const {CompCode, YearCode, DeptCode, TalukaCode} = req.query;
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+    console.log('userPermissionsQuery:', userPermissionsQuery);
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const query = `DELETE FROM AttendanceEntry WHERE EntryNo = ${EntryNo} AND TrDate ='${selectedDate}' AND DeptCode = ${DeptCode} 
+          AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND Talukacode = ${TalukaCode}`;
 
           try {
             await sql.query(query);
@@ -8309,21 +8715,6 @@ app.delete('/api/AttendanceEntriesDelete/:EntryNo', authenticateToken, async (re
   }
 });
 
-//  //For RailwayWagon
-//  app.get('/api/railwaywagon', authenticateToken, (req, res) => {
-//   const { DeptCode, YearCode, CompCode } = req.query;
-//   const query = `SELECT * FROM RRWagonEntry WHERE DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND CompCode = ${CompCode}`;
-//   sql.query(query, (err, result) => {
-//     if (err) {
-//       console.log('query',query);
-//       console.error('Error executing SQL query:', err);
-//       res.status(500).json({ error: 'Internal server error' });
-//     } else {
-//       console.log('query',query);
-//       res.json(result);
-//     }
-//   });
-// });
 
 app.get('/api/railwaywagon/:DeptCode/:CompCode/:YearCode', authenticateToken, (req, res) => {
   const { DeptCode, CompCode, YearCode } = req.params;
@@ -8338,9 +8729,51 @@ app.get('/api/railwaywagon/:DeptCode/:CompCode/:YearCode', authenticateToken, (r
   });
 });
 
+app.get('/api/Inwardrailwaywagon/:CompCode/:YearCode', authenticateToken, (req, res) => {
+  const {CompCode , YearCode } = req.params;
+  const query = `SELECT * FROM RRWagonEntry WHERE CompCode = ${CompCode} And YearCode = ${YearCode}`;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/Collector', authenticateToken, (req, res) => {
+  const { CompCode, YearCode } = req.query;
+  
+  // Ensure CompCode and YearCode are numbers
+  if (isNaN(CompCode) || isNaN(YearCode)) {
+    return res.status(400).json({ error: 'Invalid CompCode or YearCode' });
+  }
+
+  const query = `
+    SELECT * 
+    FROM RRWagonEntry 
+    WHERE CompCode = @CompCode AND YearCode = @YearCode
+  `;
+
+  const request = new sql.Request();
+  request.input('CompCode', sql.Int, CompCode);
+  request.input('YearCode', sql.Int, YearCode);
+
+  request.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+
 app.post('/api/railwaywagon/:EntryNo', authenticateToken, (req, res) => {
   const entryNo = req.params.EntryNo;
-  const requestData = req.body;
+  const { requestData, CompCode, YearCode, DeptCode } = req.body;
   const values = requestData.map(entry => `(
     ${entryNo}, 
     '${entry.TrDate}', 
@@ -8366,7 +8799,7 @@ app.post('/api/railwaywagon/:EntryNo', authenticateToken, (req, res) => {
     )`).join(',');
 
   let query = `
-    delete from RRWagonEntry where EntryNo = ${entryNo};
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'RRW' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND CompCode = ${CompCode};
 
     INSERT INTO RRWagonEntry (
       EntryNo,
@@ -8405,8 +8838,8 @@ app.post('/api/railwaywagon/:EntryNo', authenticateToken, (req, res) => {
   });
 });
 
-app.delete('/api/railwaywagon/:EntryNo', authenticateToken, async (req, res) => {
-  const EntryNo = req.params.EntryNo;
+app.delete('/api/railwaywagon/:EntryNo/:DeptCode/:CompCode/:YearCode', authenticateToken, async (req, res) => {
+  const { EntryNo, CompCode, YearCode, DeptCode } = req.params;
   const UserName = req.headers['username'];
 
   try {
@@ -8427,7 +8860,7 @@ app.delete('/api/railwaywagon/:EntryNo', authenticateToken, async (req, res) => 
 
         if (AllowEntryDelete === 1) {
           // The user has permission to delete entries
-          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo}`;
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND CompCode = ${CompCode};`;
 
           try {
             await sql.query(query);
@@ -8455,13 +8888,13 @@ app.delete('/api/railwaywagon/:EntryNo', authenticateToken, async (req, res) => 
 
 app.post('/api/RRDispatch/:EntryNo', authenticateToken, (req, res) => {
   const entryNo = req.params.EntryNo;
-  const requestData = req.body;
+  const { requestData, DeptCode, YearCode, CompCode } = req.body;
 
   if (requestData.length === 0) {
     // If the requestData array is empty, just delete records and return.
     const deleteQuery = ` DELETE FROM RRWagonEntry 
       WHERE WagonEntryNo IN (${requestData.map(entry => entry.WagonEntryNo).join(',')})
-      AND Flag = 'RRD';`;
+      AND Flag = 'RRD' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND EntryNo =  ${entryNo};`;
 
     sql.query(deleteQuery, (err, result) => {
       if (err) {
@@ -8484,7 +8917,7 @@ app.post('/api/RRDispatch/:EntryNo', authenticateToken, (req, res) => {
           '${entry.StationName ? entry.StationName : entry.StationCode}',
           '${entry.WagonNo}',
           ${entry.ProductCode},
-          ${entry.LoadQty},
+          ${entry.LoadQty || entry.Qty},
           ${entry.Weight},
           '${entry.SubAcCode ? entry.SubAcCode : entry.PartyCode}',
           ${entry.TotalQty},  
@@ -8499,17 +8932,17 @@ app.post('/api/RRDispatch/:EntryNo', authenticateToken, (req, res) => {
           '${entry.HamaliTypeCode}',
           ${entry.VehicleCode},
           '${entry.DriverName}',
-          ${entry.RPHQty},
+          ${entry.RPHQty || 0},
           ${entry.BuiltyNo ? entry.BuiltyNo : entry.BiltiNo},
           ${entry.UnloadTypeCode},
-          ${entry.DepartmentCode},
+          ${entry.DepartmentCode || entry.LocationCode},
           'RRD'
       )`).join(',');
 
     const insertQuery = `
           DELETE FROM RRWagonEntry 
           WHERE WagonEntryNo IN (${requestData.map(entry => entry.WagonEntryNo).join(',')})
-          AND Flag = 'RRD';
+           AND Flag = 'RRD' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND EntryNo =  ${entryNo};
       
           INSERT INTO RRWagonEntry (
               EntryNo,
@@ -8555,6 +8988,251 @@ app.post('/api/RRDispatch/:EntryNo', authenticateToken, (req, res) => {
     });
   }
 });
+
+// app.post('/api/singleSave', authenticateToken, (req, res) => {
+//   const {
+//     EntryNo,
+//     TrDate,
+//     PartyCode,
+//     ProductCode,
+//     RakeNo,
+//     RRNo,
+//     TotalWagons,
+//     RakeDate,
+//     RakeTime,
+//     StationName,
+//     TotalQty,
+//     TotalWeight,
+//     DeptCode,
+//     YearCode,
+//     CompCode,
+//     WagonNo,
+//     Weight,
+//     WagonEntryNo,
+//     UserID,
+//     GangCode,
+//     HamaliTypeCode,
+//     VehicleCode,
+//     DriverName,
+//     LoadQty,
+//     RPHQty,
+//     BuiltyNo,
+//     UnloadTypeCode,
+//     DepartmentCode } = req.body;
+
+//   const query = `
+//       DELETE FROM RRWagonEntry 
+//           WHERE WagonEntryNo = ${WagonEntryNo}
+//           AND Flag = 'RRD' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND EntryNo =  ${EntryNo};
+
+//       INSERT INTO RRWagonEntry (EntryNo,
+//               TrDate,
+//               RRNo,
+//               TotalWagons,
+//               RakeNo,
+//               RakeDate,
+//               RakeTime,
+//               StationCode,
+//               WagonNo,
+//               ProductCode,
+//               Qty,
+//               Weight,
+//               PartyCode,
+//               TotalQty,
+//               TotalWeight,
+//               DeptCode,
+//               YearCode,
+//               Compcode,
+//               UserID,
+//               WagonEntryNo,
+//               DesptachEntryNo,
+//               GangCode,
+//               HamaliTypeCode,
+//               VehicleCode,
+//               DriverName,
+//               RPHQty,
+//               BiltiNo,
+//               UnloadTypeCode,
+//               LocationCode,
+//               Flag)
+//       VALUES ('${EntryNo}', '${TrDate}','${RRNo}','${TotalWagons}', '${RakeNo}','${RakeDate}','${RakeTime}','${StationName}','${WagonNo}','${ProductCode}','${LoadQty}','${Weight}','${PartyCode}', '${TotalQty}', '${TotalWeight}', '${DeptCode}','${YearCode}','${CompCode}','${UserID}', '${WagonEntryNo}',  '${GangCode}', '${HamaliTypeCode}', '${VehicleCode}', '${DriverName}', '${RPHQty}', '${BuiltyNo}', '${UnloadTypeCode}', '${DepartmentCode}', 'RRD');
+//     `;
+
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Entry saved successfully' });
+//     }
+//   });
+// });
+
+app.post('/api/singleSave', authenticateToken, (req, res) => {
+  const {
+    EntryNo,
+    TrDate,
+    PartyCode,
+    ProductCode,
+    RakeNo,
+    RRNo,
+    TotalWagons,
+    RakeDate,
+    RakeTime,
+    StationName,
+    TotalQty,
+    TotalWeight,
+    DeptCode,
+    YearCode,
+    CompCode,
+    WagonNo,
+    Weight,
+    WagonEntryNo,
+    UserID,
+    GangCode,
+    HamaliTypeCode,
+    VehicleCode,
+    DriverName,
+    LoadQty,
+    RPHQty,
+    BuiltyNo,
+    UnloadTypeCode,
+    DepartmentCode,
+    ID
+  } = req.body;
+
+  const query = `
+      DELETE FROM RRWagonEntry 
+      WHERE WagonEntryNo = ${WagonEntryNo}
+      AND Flag = 'RRD' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND EntryNo = ${EntryNo} AND DesptachEntryNo = ${ID} AND BiltiNo = ${BuiltyNo};
+
+      INSERT INTO RRWagonEntry (
+        EntryNo,
+        TrDate,
+        RRNo,
+        TotalWagons,
+        RakeNo,
+        RakeDate,
+        RakeTime,
+        StationCode,
+        WagonNo,
+        ProductCode,
+        Qty,
+        Weight,
+        PartyCode,
+        TotalQty,
+        TotalWeight,
+        DeptCode,
+        YearCode,
+        Compcode,
+        UserID,
+        WagonEntryNo,
+        GangCode,
+        HamaliTypeCode,
+        VehicleCode,
+        DriverName,
+        RPHQty,
+        BiltiNo,
+        UnloadTypeCode,
+        LocationCode,
+        DesptachEntryNo,
+        Flag
+      ) VALUES (
+        '${EntryNo}', 
+        '${TrDate}', 
+        '${RRNo}', 
+        '${TotalWagons}', 
+        '${RakeNo}', 
+        '${RakeDate}', 
+        '${RakeTime}', 
+        '${StationName}', 
+        '${WagonNo}', 
+        '${ProductCode}', 
+        '${LoadQty}', 
+        '${Weight}', 
+        '${PartyCode}', 
+        '${TotalQty}', 
+        '${TotalWeight}', 
+        '${DeptCode}', 
+        '${YearCode}', 
+        '${CompCode}', 
+        '${UserID}', 
+        '${WagonEntryNo}', 
+        '${GangCode}', 
+        '${HamaliTypeCode}', 
+        '${VehicleCode}', 
+        '${DriverName}', 
+        '${RPHQty}', 
+        '${BuiltyNo}', 
+        '${UnloadTypeCode}', 
+        '${DepartmentCode}', 
+        '${ID}', 
+        'RRD'
+      );
+    `;
+
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Entry saved successfully' });
+    }
+  });
+});
+
+app.delete('/api/singleDel/:EntryNo', authenticateToken, async (req, res) => {
+  const EntryNo = req.params.EntryNo;
+  const UserName = req.headers['username'];
+  const { WagonEntryNo, DeptCode, YearCode, CompCode, ID, BuiltyNo } = req.query;
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowEntryDelete } = userResults.recordset[0];
+
+        if (AllowEntryDelete === 1) {
+          // The user has permission to delete entries
+          const query = ` DELETE FROM RRWagonEntry 
+            WHERE WagonEntryNo = ${WagonEntryNo}
+            AND Flag = 'RRD' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND EntryNo = ${EntryNo} AND DesptachEntryNo = ${ID} AND BiltiNo = ${BuiltyNo};
+          `;
+
+          try {
+            await sql.query(query);
+            res.json({ message: 'Success' });
+          } catch (error) {
+            console.log('Error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          }
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 
 // for CWC Inward
 app.put('/api/CWCInward/:DespatchCode', authenticateToken, (req, res) => {
@@ -8604,18 +9282,20 @@ app.put('/api/CWCInward/:DespatchCode', authenticateToken, (req, res) => {
 //for DO entry 
 app.post('/api/DoEntry/:DoEntryNo', authenticateToken, (req, res) => {
   const entryNo = req.params.DoEntryNo;
-  const requestData = req.body;
+  const {requestData, CompCode,YearCode,DeptCode} = req.body;
   const values = requestData.map(entry => `(
     ${entryNo}, 
+    ${entry.DONo}, 
     '${entry.TrDate}', 
+    '${entry.LockDate}', 
     '${entry.DoMonth ? entry.DoMonth : entry.TrMonth}',
     ${entry.ProductCode},
-    ${entry.YojanaCode ? entry.YojanaCode : entry.editRoomId},
+    ${entry.YojanaCode ? entry.YojanaCode : entry.ItemCode},
     ${entry.TalukaCode}, 
     ${entry.Weight}, 
-    ${entry.GoDownWeight ? entry.GoDownWeight : entry.GodwonWeight}, 
+    ${entry.GoDownWeight ? entry.GoDownWeight || 0 : entry.GodwonWeight || 0}, 
     ${entry.DirectWeight},
-    ${entry.TotTalukaWeight ? entry.TotTalukaWeight : entry.TalukaCode}, 
+    ${entry.TotTalukaWeight ? entry.TotTalukaWeight || 0 : entry.TalukaWeight || 0}, 
     '${entry.Remark ? entry.Remark : entry.Remark1}',
     ${entry.DeptCode},
     ${entry.YearCode},
@@ -8626,11 +9306,13 @@ app.post('/api/DoEntry/:DoEntryNo', authenticateToken, (req, res) => {
     )`).join(',');
 
   let query = `
-    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'DO';
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'DO' AND CompCode = ${CompCode} AND YearCode = ${YearCode} AND DeptCode = ${DeptCode};
 
     INSERT INTO RRWagonEntry (
       EntryNo,
+      DONo,
       TrDate,
+      Lockdate,
       TrMonth,
       ProductCode,
       YojanaCode,
@@ -8664,7 +9346,7 @@ app.post('/api/DoEntry/:DoEntryNo', authenticateToken, (req, res) => {
 app.delete('/api/DELDoEntry/:EntryNo', authenticateToken, async (req, res) => {
   const EntryNo = req.params.EntryNo;
   const UserName = req.headers['username'];
-
+  const {CompCode,YearCode,DeptCode} = req.query;
   try {
     // Fetch user permissions from the database based on the user making the request
     const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
@@ -8683,7 +9365,7 @@ app.delete('/api/DELDoEntry/:EntryNo', authenticateToken, async (req, res) => {
 
         if (AllowEntryDelete === 1) {
           // The user has permission to delete entries
-          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='DO'`;
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='DO' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode}`;
 
           try {
             await sql.query(query);
@@ -8707,23 +9389,27 @@ app.delete('/api/DELDoEntry/:EntryNo', authenticateToken, async (req, res) => {
   }
 });
 
+
+
 //For CWCD ENtry
 app.post('/api/CWCDEntry/:EntryNo', authenticateToken, (req, res) => {
   const entryNo = req.params.EntryNo;
-  const requestData = req.body;
+  const {requestData, CompCode,YearCode,DeptCode} = req.body;
   const values = requestData.map(entry => `(
     ${entryNo}, 
     '${entry.TrDate}', 
+    '${entry.DONo}', 
     '${entry.DoDate ? entry.DoDate : entry.TrMonth}',
     ${entry.ProductCode},
-    ${entry.YojanaCode ? entry.YojanaCode : entry.editRoomId},
+    ${entry.YojanaCode ? entry.YojanaCode : entry.ItemCode},
     ${entry.TalukaCode}, 
     ${entry.GangCode}, 
     ${entry.HamaliTypeCode},
     ${entry.Qty}, 
+    ${entry.Weight}, 
     '${entry.VehicleCode}',
-    ${entry.BuiltyTPNO},
-    ${entry.locationCode},
+    ${entry.BuiltyTPNO || entry.BiltiNo},
+    ${entry.locationCode || entry.LocationCode},
     ${entry.DeptCode},
     ${entry.YearCode},
     ${entry.CompCode ? entry.CompCode : entry.Compcode},
@@ -8733,11 +9419,12 @@ app.post('/api/CWCDEntry/:EntryNo', authenticateToken, (req, res) => {
     )`).join(',');
 
   let query = `
-    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'CWCD';
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'CWCD' AND CompCode = ${CompCode} AND YearCode = ${YearCode} AND DeptCode = ${DeptCode};
 
     INSERT INTO RRWagonEntry (
       EntryNo,
       TrDate,
+      DONo,
       TrMonth,
       ProductCode,
       YojanaCode,
@@ -8745,6 +9432,7 @@ app.post('/api/CWCDEntry/:EntryNo', authenticateToken, (req, res) => {
       GangCode,
       HamaliTypeCode,
       Qty,
+      Weight,
       VehicleCode,
       BiltiNo,
       LocationCode,
@@ -8772,6 +9460,8 @@ app.post('/api/CWCDEntry/:EntryNo', authenticateToken, (req, res) => {
 app.delete('/api/CWCDEntry/:EntryNo', authenticateToken, async (req, res) => {
   const EntryNo = req.params.EntryNo;
   const UserName = req.headers['username'];
+  const {CompCode,YearCode,DeptCode} = req.query;
+
 
   try {
     // Fetch user permissions from the database based on the user making the request
@@ -8791,7 +9481,7 @@ app.delete('/api/CWCDEntry/:EntryNo', authenticateToken, async (req, res) => {
 
         if (AllowEntryDelete === 1) {
           // The user has permission to delete entries
-          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='CWCD'`;
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='CWCD' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} `;
 
           try {
             await sql.query(query);
@@ -8816,41 +9506,91 @@ app.delete('/api/CWCDEntry/:EntryNo', authenticateToken, async (req, res) => {
 });
 
 //FOR TalukaGodownInward
-app.put('/api/AcceptDespatch/:EntryNo', authenticateToken, (req, res) => {
-  const { EntryNo } = req.params;
-  const { GangCode, statusCode } = req.body;
-  const query = `
-    UPDATE RRWagonEntry 
-    SET 
-    StatusCode = ${statusCode},
-    GangCode1 = ${GangCode}
-    WHERE  Flag = 'CWCD'AND EntryNo = ${EntryNo};
-`;
+// app.put('/api/AcceptDespatch/:EntryNo', authenticateToken, (req, res) => {
+//   const { EntryNo } = req.params;
+//   const { GangCode, statusCode, HamaliTypeCode, CompCode,YearCode,DeptCode,TalukaCode } = req.body;
+//   const query = `
+//     UPDATE RRWagonEntry 
+//     SET 
+//     StatusCode = ${statusCode},
+//     GangCode1 = ${GangCode},
+//     HamaliTypeCode1 = ${HamaliTypeCode}
+//     WHERE  Flag = 'CWCD'AND EntryNo = ${EntryNo} AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND TalukaCode = ${TalukaCode};
+// `;
 
-  sql.query(query, (err, result) => {
-    if (err) {
-      console.log('Error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    } else {
-      if (result.rowsAffected && result.rowsAffected[0] > 0) {
-        res.json({
-          message: 'Accepted successfully'
-        });
-      } else {
-        res.status(404).json({ error: 'Record not found' });
-      }
-    }
+//   sql.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       if (result.rowsAffected && result.rowsAffected[0] > 0) {
+//         res.json({
+//           message: 'Accepted successfully'
+//         });
+//       } else {
+//         res.status(404).json({ error: 'Record not found' });
+//       }
+//     }
+//   });
+// });
+
+app.put('/api/AcceptDespatch/:EntryNo', authenticateToken, (req, res) => {
+  const { requestData, CompCode, YearCode, DeptCode } = req.body;
+
+  const updatePromises = requestData.map(entry => {
+      const query = `
+          UPDATE RRWagonEntry 
+          SET 
+              StatusCode = @statusCode,
+              GangCode1 = @GangCode,
+              HamaliTypeCode1 = @HamaliTypeCode,
+              InwardQty = @Qty,
+              InwardDate = @TrDate
+          WHERE  
+              Flag = 'CWCD' AND 
+              EntryNo = @EntryNo AND 
+              YearCode = @YearCode AND 
+              CompCode = @CompCode AND 
+              TalukaCode = @TalukaCode AND
+              DesptachEntryNo = @DesptachEntryNo;
+      `;
+
+      const request = new sql.Request();
+      request.input('statusCode', sql.Int, 1); // Assuming statusCode is always 1
+      request.input('GangCode', sql.Int, entry.GangCode1);
+      request.input('HamaliTypeCode', sql.Int, entry.HamaliTypeCode1);
+      request.input('EntryNo', sql.Int, entry.EntryNo);
+      request.input('DeptCode', sql.Int, DeptCode);
+      request.input('YearCode', sql.Int, YearCode);
+      request.input('CompCode', sql.Int, CompCode);
+      request.input('TalukaCode', sql.Int, entry.TalukaCode);
+      request.input('Qty', sql.Decimal(15, 6), entry.Qty);
+      request.input('TrDate', sql.VarChar, entry.TrDate);
+      request.input('DesptachEntryNo', sql.Int, entry.DesptachEntryNo);
+      
+
+      return request.query(query);
   });
+
+  Promise.all(updatePromises)
+      .then(results => {
+          res.json({ message: 'Data updated successfully' });
+      })
+      .catch(err => {
+          console.log('Error:', err);
+          res.status(500).json({ error: 'Internal server error' });
+      });
 });
+
+
 
 //For TalukaGodownOutWard
 app.post('/api/TGDEntry/:EntryNo', authenticateToken, (req, res) => {
   const entryNo = req.params.EntryNo;
-  const requestData = req.body;
+  const {requestData, CompCode,YearCode,DeptCode, TalukaCode} = req.body;
   const values = requestData.map(entry => `(
     ${entryNo}, 
     '${entry.TrDate}', 
-    '${entry.DoDate ? entry.DoDate : entry.TrMonth}',
     ${entry.ProductCode},
     ${entry.YojanaCode ? entry.YojanaCode : entry.editRoomId},
     ${entry.ShopCode ? entry.ShopCode : entry.PartyCode}, 
@@ -8865,16 +9605,21 @@ app.post('/api/TGDEntry/:EntryNo', authenticateToken, (req, res) => {
     ${entry.CompCode ? entry.CompCode : entry.Compcode},
     '${entry.UserID}',
     ${entry.editRoomId ? entry.editRoomId : entry.DesptachEntryNo},
-    'TGD'
+    ${entry.Weight},
+    ${entry.PermitNo},
+    '${entry.PermitDate}',
+    '${entry.PermitMonth}',
+      ${TalukaCode},
+      'TGD'
     )`).join(',');
 
   let query = `
-    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'TGD';
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'TGD'  AND CompCode = ${CompCode} AND YearCode = ${YearCode} AND 
+    DeptCode = ${DeptCode} AND TalukaCode = ${TalukaCode};
 
     INSERT INTO RRWagonEntry (
       EntryNo,
       TrDate,
-      TrMonth,
       ProductCode,
       YojanaCode,
       PartyCode,
@@ -8889,6 +9634,11 @@ app.post('/api/TGDEntry/:EntryNo', authenticateToken, (req, res) => {
       Compcode,
       UserID,
       DesptachEntryNo,
+      Weight,
+      PermitNo,
+      PermitDate,
+      PermitMonth,
+      TalukaCode,
       Flag
     ) VALUES ${values};`;
 
@@ -8908,6 +9658,7 @@ app.post('/api/TGDEntry/:EntryNo', authenticateToken, (req, res) => {
 app.delete('/api/TGDEntry/:EntryNo', authenticateToken, async (req, res) => {
   const EntryNo = req.params.EntryNo;
   const UserName = req.headers['username'];
+  const {CompCode, YearCode, DeptCode, TalukaCode} = req.query;
 
   try {
     // Fetch user permissions from the database based on the user making the request
@@ -8927,13 +9678,18 @@ app.delete('/api/TGDEntry/:EntryNo', authenticateToken, async (req, res) => {
 
         if (AllowEntryDelete === 1) {
           // The user has permission to delete entries
-          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='TGD'`;
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='TGD'  AND CompCode = ${CompCode} AND YearCode = ${YearCode} 
+          AND DeptCode = ${DeptCode} AND TalukaCode = ${TalukaCode}`;
 
           try {
             await sql.query(query);
             res.json({ message: 'Success' });
+            console.log('query:', query);
+
           } catch (error) {
             console.log('Error:', error);
+            console.log('query:', query);
+
             res.status(500).json({ error: 'Internal server error' });
           }
         } else {
@@ -8955,7 +9711,7 @@ app.delete('/api/TGDEntry/:EntryNo', authenticateToken, async (req, res) => {
 //For Direct Despatch Entry
 app.post('/api/DD/:EntryNo', authenticateToken, (req, res) => {
   const entryNo = req.params.EntryNo;
-  const requestData = req.body;
+  const {requestData, CompCode,YearCode,DeptCode} = req.body;
   const values = requestData.map(entry => `(
     ${entryNo}, 
     '${entry.TrDate}', 
@@ -8979,7 +9735,7 @@ app.post('/api/DD/:EntryNo', authenticateToken, (req, res) => {
     )`).join(',');
 
   let query = `
-    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'DD';
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'DD' AND CompCode = ${CompCode} AND YearCode = ${YearCode} AND DeptCode = ${DeptCode};
 
     INSERT INTO RRWagonEntry (
       EntryNo,
@@ -9019,7 +9775,7 @@ app.post('/api/DD/:EntryNo', authenticateToken, (req, res) => {
 app.delete('/api/DD/:EntryNo', authenticateToken, async (req, res) => {
   const EntryNo = req.params.EntryNo;
   const UserName = req.headers['username'];
-
+  const {CompCode,YearCode,DeptCode} = req.query;
   try {
     // Fetch user permissions from the database based on the user making the request
     const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
@@ -9038,7 +9794,7 @@ app.delete('/api/DD/:EntryNo', authenticateToken, async (req, res) => {
 
         if (AllowEntryDelete === 1) {
           // The user has permission to delete entries
-          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='DD'`;
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='DD'  AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode}`;
 
           try {
             await sql.query(query);
@@ -9079,9 +9835,63 @@ app.get('/api/DeductionEntry/:DeptCode/:CompCode/:YearCode', authenticateToken, 
 });
 
 // Add DeductionEntry
+// app.post('/api/DeductionEntry/:EntryNo', authenticateToken, (req, res) => {
+//   const entryNo = req.params.EntryNo;
+//   const {requestData, AcCode} = req.body;
+//   const values = requestData.map(entry => `(
+//       ${entry.EntryNo}, 
+//       '${entry.TrDate}', 
+//       ${entry.LocationCode},
+//       ${entry.DeductionTypeCode},
+//       ${entry.DieselCompanyCode},
+//       '${entry.BillNo}',
+//       ${entry.Qty},
+//       ${entry.Amt},
+//       '${entry.Remark1}',
+//       '${entry.UserID}',
+//       ${entry.Compcode},
+//       ${entry.DeptCode},
+//       ${entry.YearCode},
+//       ${AcCode},
+//       'DP'
+//   )`).join(',');
+
+//   let query = `
+//       DELETE FROM DeductionEntry WHERE EntryNo = ${entryNo} AND TE.DeptCode = '${DeptCode}' AND TE.YearCode = '${YearCode}'  AND TE.CompCode = '${CompCode};
+
+//       INSERT INTO DeductionEntry (
+//           EntryNo,
+//           TrDate,
+//           LocationCode,
+//           DeductionTypeCode,
+//           DieselCompanyCode,
+//           BillNo,
+//           Qty,
+//           Amt,
+//           Remark1,
+//           UserID,
+//           Compcode,
+//           DeptCode,
+//           YearCode,
+//           Accode,
+//           Flag
+//       ) VALUES ${values};
+//       `;
+
+//   sql.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       console.log('query:', query);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Data saved successfully' });
+//     }
+//   });
+// });
+
 app.post('/api/DeductionEntry/:EntryNo', authenticateToken, (req, res) => {
   const entryNo = req.params.EntryNo;
-  const requestData = req.body;
+  const { requestData, AcCode, flag, DeptCode, YearCode, Compcode, AutoEntryData, selectGrp, operation } = req.body; // assuming flag is part of the request body
   const values = requestData.map(entry => `(
       ${entry.EntryNo}, 
       '${entry.TrDate}', 
@@ -9095,11 +9905,14 @@ app.post('/api/DeductionEntry/:EntryNo', authenticateToken, (req, res) => {
       '${entry.UserID}',
       ${entry.Compcode},
       ${entry.DeptCode},
-      ${entry.YearCode}
+      ${entry.YearCode},
+      ${entry.VehicleCode},
+      ${AcCode},
+      'DE'
   )`).join(',');
 
   let query = `
-      DELETE FROM DeductionEntry WHERE EntryNo = ${entryNo};
+      DELETE FROM DeductionEntry WHERE EntryNo = ${entryNo} AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${Compcode}';
 
       INSERT INTO DeductionEntry (
           EntryNo,
@@ -9114,8 +9927,59 @@ app.post('/api/DeductionEntry/:EntryNo', authenticateToken, (req, res) => {
           UserID,
           Compcode,
           DeptCode,
-          YearCode
-      ) VALUES ${values};`;
+          YearCode,
+          VehicleCode,
+          Accode,
+          Flag
+      ) VALUES ${values};
+  `;
+  if (operation === 'AutoEntry') {
+    const values1 = AutoEntryData.map(entry => {
+      const deductionType = selectGrp.find(deduction => deduction.DeductionTypeCode == entry.DeductionTypeCode);
+      const acCode = deductionType ? deductionType.AcCode : null;
+      return `(
+      ${entry.EntryNo}, 
+      '${entry.TrDate}', 
+      ${acCode ? acCode : AcCode},
+      ${entry.VehicleCode},
+      ${entry.CrAmt ? entry.CrAmt : 0},
+      ${entry.Amt ? entry.Amt : 0},
+      '${entry.Remark1}',
+      '${entry.BillNo}',
+      ${entry.Qty},
+      '${entry.UserID}',
+      ${entry.Compcode},
+      ${entry.DeptCode},
+      ${entry.YearCode},
+      'DE',
+      ${entry.CrAmt ? 0 : 5},
+      1
+  )`}).join(',');
+
+    const dpQuery = `
+      DELETE FROM TranEntry
+      WHERE EntryNo = ${entryNo} AND Flag = 'DE' AND DeptCode = '${DeptCode}' AND YearCode = '${YearCode}' AND CompCode = '${Compcode}';
+      
+      INSERT INTO TranEntry (
+          EntryNo,
+          TrDate,
+          AcCode,
+          SubAcCode,
+          CrAmt,
+          DrAmt,
+          Narration1,
+          Narration2,
+          Qty,
+          UserID,
+          CompCode,
+          DeptCode,
+          YearCode,
+          Flag,
+          SubLedgerGroupCode,
+          CashOrTr
+      ) VALUES ${values1}; `;
+    query += dpQuery;
+  }
 
   sql.query(query, (err, result) => {
     if (err) {
@@ -9129,10 +9993,12 @@ app.post('/api/DeductionEntry/:EntryNo', authenticateToken, (req, res) => {
 });
 
 
+
 // Delete DeductionEntry
 app.delete('/api/DeductionEntry/:EntryNo', authenticateToken, async (req, res) => {
   const EntryNo = req.params.EntryNo;
   const UserName = req.headers['username'];
+  const {CompCode,YearCode,DeptCode} = req.query;
 
   try {
     // Fetch user permissions from the database based on the user making the request
@@ -9152,7 +10018,7 @@ app.delete('/api/DeductionEntry/:EntryNo', authenticateToken, async (req, res) =
 
         if (AllowEntryDelete === 1) {
           // The user has permission to delete entries
-          const query = `DELETE FROM DeductionEntry WHERE EntryNo = ${EntryNo}`;
+          const query = `DELETE FROM DeductionEntry WHERE EntryNo = ${EntryNo} AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND CompCode = ${CompCode}`;
 
           try {
             await sql.query(query);
@@ -9196,10 +10062,10 @@ app.get('/api/deduction-type', authenticateToken, (req, res) => {
 // POST a new caste
 // POST create a new deduction type
 app.post('/api/deduction-type', authenticateToken, (req, res) => {
-  const { DeductionTypeCode, DeductionType, Remark1, UserID } = req.body;
+  const { DeductionTypeCode, DeductionType, AcCode, UserID } = req.body;
   const query = `
-      INSERT INTO DeductionTypeMaster (DeductionTypeCode, DeductionType, Remark1, UserID)
-      VALUES ('${DeductionTypeCode}', N'${DeductionType}', N'${Remark1}', '${UserID}');
+      INSERT INTO DeductionTypeMaster (DeductionTypeCode, DeductionType, AcCode, UserID)
+      VALUES ('${DeductionTypeCode}', N'${DeductionType}', '${AcCode}', '${UserID}');
     `;
   sql.query(query, (err) => {
     if (err) {
@@ -9214,10 +10080,10 @@ app.post('/api/deduction-type', authenticateToken, (req, res) => {
 // PUT update an existing deduction type
 app.put('/api/deduction-type/:DeductionTypeCode', authenticateToken, (req, res) => {
   const { DeductionTypeCode } = req.params;
-  const { DeductionType, Remark1, UserID } = req.body;
+  const { DeductionType, AcCode, UserID } = req.body;
   const query = `
       UPDATE DeductionTypeMaster
-      SET DeductionType=N'${DeductionType}', Remark1=N'${Remark1}', UserID='${UserID}'
+      SET DeductionType=N'${DeductionType}', AcCode = '${AcCode}', UserID='${UserID}'
       WHERE DeductionTypeCode='${DeductionTypeCode}';
     `;
   sql.query(query, (err, result) => {
@@ -9230,7 +10096,7 @@ app.put('/api/deduction-type/:DeductionTypeCode', authenticateToken, (req, res) 
           message: 'Deduction type updated successfully',
           DeductionTypeCode: DeductionTypeCode,
           DeductionType,
-          Remark1,
+          AcCode,
           UserID,
         });
       } else {
@@ -9621,3 +10487,1210 @@ app.delete('/api/slab/:SlabCode', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// GET all Paysheet entries
+app.get('/api/paysheets', authenticateToken, (req, res) => {
+  const query = 'SELECT * FROM Paysheet';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/AutoData', authenticateToken, (req, res) => {
+  const query = 'Select a.empcode,a.empname,b.Designation,c.BaiscPay,c.TDS,round(c.BaiscPay *.12,0)  as PF  from EmployeeMaster as a,DesignationMaster as b, EmpSalaryMaster AS c where emptypecode = 2 and a.DesgCode = b.DesigCode and a.empcode = c.EmpCode';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/AutoPresenty', authenticateToken, (req, res) => {
+  const query = 'SELECT empcode,count(empcode) as PresentDays FROM AttendanceEntry  where presentyn  = 1 and EmpTypeCode = 2 group by empcode';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new Paysheet entry
+app.post('/api/paysheets', authenticateToken, (req, res) => {
+  const {
+    EntryNo,
+    flag,
+    TrDate,
+    EmpCode,
+    PresentDays,
+    PaidLeaves,
+    UnPaid,
+    Grade,
+    BaiscPay,
+    Allow1,
+    Allow2,
+    GrossPay,
+    PF,
+    TDS,
+    ProfTax,
+    ESIC,
+    Ded1,
+    Ded2,
+    TotalDed,
+    NetPay,
+    Remark1,
+    Remark2,
+    EmpDeptCode,
+    CompCode,
+    deptcode,
+    yearcode,
+    UserID
+  } = req.body;
+  const query = `
+      INSERT INTO Paysheet (EntryNo,flag, TrDate, EmpCode, PresentDays, PaidLeaves, UnPaid, Grade, BaiscPay, Allow1, Allow2, GrossPay, PF, TDS, ProfTax, ESIC, Ded1, Ded2, TotalDed, NetPay, Remark1, Remark2, EmpDeptCode, CompCode, deptcode, yearcode, UserID)
+      VALUES (${EntryNo || 0}, '${flag || 0}','${TrDate || 0}', ${EmpCode || 0}, ${PresentDays || 0}, ${PaidLeaves || 0}, ${UnPaid || 0}, ${Grade || 0}, ${BaiscPay || 0}, ${Allow1 || 0}, ${Allow2 || 0}, ${GrossPay || 0}, ${PF || 0}, ${TDS || 0}, ${ProfTax || 0}, ${ESIC || 0}, ${Ded1 || 0}, ${Ded2 || 0}, ${TotalDed || 0}, ${NetPay || 0}, '${Remark1 || 0}', '${Remark2 || 0}', ${EmpDeptCode || 0}, ${CompCode || 0}, ${deptcode || 0}, ${yearcode || 0}, ${UserID || 0});
+    `;
+
+  console.log('query:', query);
+
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Paysheet created successfully' });
+      console.log('query:', query);
+
+    }
+  });
+});
+
+app.post('/api/paysheetsNew/:EntryNo', authenticateToken, (req, res) => {
+  const entryNo = req.params.EntryNo;
+  const requestData = req.body;
+  const values = requestData.map(entry => `(
+    ${entry.EntryNo || 0}, 
+    '${entry.flag || ''}', 
+    '${entry.TrDate || ''}', 
+    ${entry.EmpCode || 0}, 
+    ${entry.PresentDays || 0}, 
+    ${entry.PaidLeaves || 0}, 
+    ${entry.UnPaid || 0}, 
+    ${entry.Grade || 0}, 
+    ${entry.BaiscPay || 0}, 
+    ${entry.Allow1 || 0}, 
+    ${entry.Allow2 || 0}, 
+    ${entry.GrossPay || 0}, 
+    ${entry.PF || 0}, 
+    ${entry.TDS || 0}, 
+    ${entry.ProfTax || 0}, 
+    ${entry.ESIC || 0}, 
+    ${entry.Ded1 || 0}, 
+    ${entry.Ded2 || 0}, 
+    ${entry.TotalDed || 0}, 
+    ${entry.NetPay || 0}, 
+    '${entry.Remark1 || ''}', 
+    '${entry.Remark2 || ''}', 
+    ${entry.EmpDeptCode || 0}, 
+    ${entry.CompCode || 0}, 
+    ${entry.deptcode || 0}, 
+    ${entry.yearcode || 0}, 
+    '${entry.UserID || ''}'
+    )`).join(',');
+
+  let query = `
+    DELETE FROM Paysheet WHERE EntryNo = ${entryNo} AND flag = '${TrDate}';
+
+    INSERT INTO Paysheet (
+      EntryNo, flag, TrDate, EmpCode, PresentDays, PaidLeaves, UnPaid, Grade, BaiscPay, Allow1, Allow2, GrossPay, PF, TDS, ProfTax, ESIC, Ded1, Ded2, TotalDed, NetPay, Remark1, Remark2, EmpDeptCode, CompCode, deptcode, yearcode, UserID
+    ) VALUES ${values};
+`;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Data saved successfully' });
+    }
+  });
+});
+
+// app.post('/api/paysheets', authenticateToken, (req, res) => {
+//   const {
+//     EntryNo,
+//     flag,
+//     TrDate,
+//     EmpCode,
+//     PresentDays,
+//     PaidLeaves,
+//     UnPaid,
+//     Grade,
+//     BaiscPay,
+//     Allow1,
+//     Allow2,
+//     GrossPay,
+//     PF,
+//     TDS,
+//     ProfTax,
+//     ESIC,
+//     Ded1,
+//     Ded2,
+//     TotalDed,
+//     NetPay,
+//     Remark1,
+//     Remark2,
+//     EmpDeptCode,
+//     CompCode,
+//     deptcode,
+//     yearcode,
+//     UserID
+//   } = req.body;
+
+//   // Set defaults for undefined or null values
+//   const defaults = {
+//     PresentDays: 0,
+//     PaidLeaves: 0,
+//     UnPaid: 0,
+//     Grade: 0,
+//     BaiscPay: 0,
+//     Allow1: 0,
+//     Allow2: 0,
+//     GrossPay: 0,
+//     PF: 0,
+//     TDS: 0,
+//     ProfTax: 0,
+//     ESIC: 0,
+//     Ded1: 0,
+//     Ded2: 0,
+//     TotalDed: 0,
+//     NetPay: 0,
+//     Remark1: '',
+//     Remark2: '',
+//     EmpDeptCode: 0,
+//     CompCode: 0,
+//     deptcode: 0,
+//     yearcode: 0,
+//     UserID: 0
+//   };
+
+//   // Applying defaults
+//   const entryData = {
+//     EntryNo: EntryNo || 0,
+//     flag: flag || '',
+//     TrDate: TrDate || '',
+//     EmpCode: EmpCode || 0,
+//     PresentDays: PresentDays || defaults.PresentDays,
+//     PaidLeaves: PaidLeaves || defaults.PaidLeaves,
+//     UnPaid: UnPaid || defaults.UnPaid,
+//     Grade: Grade || defaults.Grade,
+//     BaiscPay: BaiscPay || defaults.BaiscPay,
+//     Allow1: Allow1 || defaults.Allow1,
+//     Allow2: Allow2 || defaults.Allow2,
+//     GrossPay: GrossPay || defaults.GrossPay,
+//     PF: PF || defaults.PF,
+//     TDS: TDS || defaults.TDS,
+//     ProfTax: ProfTax || defaults.ProfTax,
+//     ESIC: ESIC || defaults.ESIC,
+//     Ded1: Ded1 || defaults.Ded1,
+//     Ded2: Ded2 || defaults.Ded2,
+//     TotalDed: TotalDed || defaults.TotalDed,
+//     NetPay: NetPay || defaults.NetPay,
+//     Remark1: Remark1 || defaults.Remark1,
+//     Remark2: Remark2 || defaults.Remark2,
+//     EmpDeptCode: EmpDeptCode || defaults.EmpDeptCode,
+//     CompCode: CompCode || defaults.CompCode,
+//     deptcode: deptcode || defaults.deptcode,
+//     yearcode: yearcode || defaults.yearcode,
+//     UserID: UserID || defaults.UserID
+//   };
+
+//   const query = `
+//       INSERT INTO Paysheet 
+//       (EntryNo, flag, TrDate, EmpCode, PresentDays, PaidLeaves, UnPaid, Grade, BaiscPay, Allow1, Allow2, GrossPay, PF, TDS, ProfTax, ESIC, Ded1, Ded2, TotalDed, NetPay, Remark1, Remark2, EmpDeptCode, CompCode, deptcode, yearcode, UserID)
+//       VALUES (${entryData.EntryNo}, '${entryData.flag}', '${entryData.TrDate}', ${entryData.EmpCode}, ${entryData.PresentDays}, ${entryData.PaidLeaves}, ${entryData.UnPaid}, ${entryData.Grade}, ${entryData.BaiscPay}, ${entryData.Allow1}, ${entryData.Allow2}, ${entryData.GrossPay}, ${entryData.PF}, ${entryData.TDS}, ${entryData.ProfTax}, ${entryData.ESIC}, ${entryData.Ded1}, ${entryData.Ded2}, ${entryData.TotalDed}, ${entryData.NetPay}, '${entryData.Remark1}', '${entryData.Remark2}', ${entryData.EmpDeptCode}, ${entryData.CompCode}, ${entryData.deptcode}, ${entryData.yearcode}, ${entryData.UserID});
+//     `;
+
+//   sql.query(query, (err) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       console.log('query:', query);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json({ message: 'Paysheet created successfully' });
+//     }
+//   });
+// });
+
+
+// PUT (update) a Paysheet entry by EntryNo
+app.put('/api/paysheets/:entryNo', authenticateToken, (req, res) => {
+  const { entryNo } = req.params;
+  const {
+    flag,
+    TrDate,
+    EmpCode,
+    PresentDays,
+    PaidLeaves,
+    UnPaid,
+    Grade,
+    BaiscPay,
+    Allow1,
+    Allow2,
+    GrossPay,
+    PF,
+    TDS,
+    ProfTax,
+    ESIC,
+    Ded1,
+    Ded2,
+    TotalDed,
+    NetPay,
+    Remark1,
+    Remark2,
+    EmpDeptCode,
+    CompCode,
+    deptcode,
+    yearcode,
+    UserID
+  } = req.body;
+  const query = `
+      UPDATE Paysheet
+      SET flag='${flag}', TrDate='${TrDate}', EmpCode='${EmpCode}', PresentDays='${PresentDays}', PaidLeaves='${PaidLeaves}', UnPaid='${UnPaid}', Grade='${Grade}', BaiscPay='${BaiscPay}', Allow1='${Allow1}', Allow2='${Allow2}', GrossPay='${GrossPay}', PF='${PF}', TDS='${TDS}', ProfTax='${ProfTax}', ESIC='${ESIC}', Ded1='${Ded1}', Ded2='${Ded2}', TotalDed='${TotalDed}', NetPay='${NetPay}', Remark1='${Remark1}', Remark2='${Remark2}', EmpDeptCode='${EmpDeptCode}', CompCode='${CompCode}', deptcode='${deptcode}', yearcode='${yearcode}', UserID='${UserID}'
+      WHERE EntryNo=${entryNo} AND EmpCode=${EmpCode};
+    `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        console.log('query:', query);
+        res.json({
+          message: 'Paysheet updated successfully',
+          entryNo,
+          flag,
+          TrDate,
+          EmpCode,
+          PresentDays,
+          PaidLeaves,
+          UnPaid,
+          Grade,
+          BaiscPay,
+          Allow1,
+          Allow2,
+          GrossPay,
+          PF,
+          TDS,
+          ProfTax,
+          ESIC,
+          Ded1,
+          Ded2,
+          TotalDed,
+          NetPay,
+          Remark1,
+          Remark2,
+          EmpDeptCode,
+          CompCode,
+          deptcode,
+          yearcode,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a Paysheet entry by EntryNo
+app.delete('/api/paysheets/:entryNo/:EmpCode', authenticateToken, (req, res) => {
+  const { entryNo, EmpCode } = req.params;
+  const UserName = req.headers['username'];
+
+  try {
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          const deleteQuery = `DELETE FROM Paysheet WHERE EntryNo='${entryNo}' AND EmpCode= ${EmpCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'Paysheet deleted successfully' });
+            }
+          });
+        } else {
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/Mainpaysheets/:entryNo', authenticateToken, (req, res) => {
+  const { entryNo } = req.params;
+  const UserName = req.headers['username'];
+
+  try {
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          const deleteQuery = `DELETE FROM Paysheet WHERE EntryNo='${entryNo}'`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'Paysheet deleted successfully' });
+            }
+          });
+        } else {
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET all EmpSalaryMaster entries
+app.get('/api/empsalarymaster', authenticateToken, (req, res) => {
+  const query = 'SELECT * FROM EmpSalaryMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// POST a new EmpSalaryMaster entry
+app.post('/api/empsalarymaster', authenticateToken, (req, res) => {
+  const {
+    EntryNo,
+    flag,
+    TrDate,
+    EmpCode,
+    BaiscPay,
+    TDS,
+    Remark1,
+    Remark2,
+    Remark3,
+    Remark4,
+    CompCode,
+    deptcode,
+    yearcode,
+    UserID
+  } = req.body;
+  const query = `
+      INSERT INTO EmpSalaryMaster (EntryNo, flag, TrDate, EmpCode, BaiscPay, TDS, Remark1, Remark2, Remark3, Remark4, CompCode, deptcode, yearcode, UserID)
+      VALUES (${EntryNo}, '${flag}', '${TrDate}', '${EmpCode}', ${BaiscPay}, ${TDS}, '${Remark1}', '${Remark2}', '${Remark3}', '${Remark4}', '${CompCode}', '${deptcode}', '${yearcode}', '${UserID}');
+    `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'EmpSalaryMaster entry created successfully' });
+    }
+  });
+});
+
+// PUT (update) an EmpSalaryMaster entry by EntryNo
+app.put('/api/empsalarymaster/:entryNo', authenticateToken, (req, res) => {
+  const { entryNo } = req.params;
+  const {
+    flag,
+    TrDate,
+    EmpCode,
+    BaiscPay,
+    TDS,
+    Remark1,
+    Remark2,
+    Remark3,
+    Remark4,
+    CompCode,
+    deptcode,
+    yearcode,
+    UserID
+  } = req.body;
+  const query = `
+      UPDATE EmpSalaryMaster
+      SET flag='${flag}', TrDate='${TrDate}', BaiscPay=${BaiscPay}, TDS=${TDS}, Remark1='${Remark1}', Remark2='${Remark2}', Remark3='${Remark3}', Remark4='${Remark4}', CompCode='${CompCode}', deptcode='${deptcode}', yearcode='${yearcode}', UserID='${UserID}'
+      WHERE EntryNo=${entryNo} AND EmpCode='${EmpCode}';
+    `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'EmpSalaryMaster entry updated successfully',
+          entryNo,
+          flag,
+          TrDate,
+          EmpCode,
+          BaiscPay,
+          TDS,
+          Remark1,
+          Remark2,
+          Remark3,
+          Remark4,
+          CompCode,
+          deptcode,
+          yearcode,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE an EmpSalaryMaster entry by EntryNo
+app.delete('/api/empsalarymaster/:entryNo/:EmpCode', authenticateToken, (req, res) => {
+  const { entryNo, EmpCode } = req.params;
+  const UserName = req.headers['username'];
+  try {
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+    sql.query(userPermissionsQuery, (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          const deleteQuery = `DELETE FROM EmpSalaryMaster WHERE EntryNo='${entryNo}' AND EmpCode='${EmpCode}'`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'EmpSalaryMaster entry deleted successfully' });
+            }
+          });
+        } else {
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/Mainempsalarymaster/:entryNo', authenticateToken, (req, res) => {
+  const { entryNo } = req.params;
+  const UserName = req.headers['username'];
+  try {
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+    sql.query(userPermissionsQuery, (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          const deleteQuery = `DELETE FROM EmpSalaryMaster WHERE EntryNo='${entryNo}'`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'EmpSalaryMaster entry deleted successfully' });
+            }
+          });
+        } else {
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+//TranSubLedger entries
+// Get all TranSubLedger entries
+app.get('/api/tranSubLedgers', (req, res) => {
+  const query = 'SELECT * FROM TranSubLedgerMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+// Create a new TranSubLedger entry
+app.post('/api/tranSubLedgers', (req, res) => {
+  const {
+    AcCode,
+    SubLedgerGroupCode,
+    SubAcCode,
+    OpBal,
+    DeptCode,
+    YearCode,
+    UserID,
+  } = req.body;
+  const query = `
+      INSERT INTO TranSubLedgerMaster (AcCode, SubLedgerGroupCode, SubAcCode, OpBal, DeptCode, YearCode, UserID)
+      VALUES (${AcCode}, ${SubLedgerGroupCode}, ${SubAcCode}, ${OpBal}, ${DeptCode}, ${YearCode}, '${UserID}');
+    `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'TranSubLedger created successfully' });
+    }
+  });
+});
+
+// Endpoint to handle saving multiple TranLedger entries
+app.post('/api/saveAllsubTranLedgers', (req, res) => {
+  const { requestData, AcCode, SubLedgerGroupCode, SubAcCode, YearCode, CompCode, UserID } = req.body; // Assuming requestData is an array of objects
+
+  // Prepare values for SQL query
+  const values = requestData.map(entry => `(
+    ${AcCode},
+    ${SubLedgerGroupCode},
+    ${SubAcCode},
+    ${entry.OpBal},
+    ${DeptCode},
+    ${YearCode},
+    ${CompCode},
+    '${UserID}'
+  )`).join(',');
+
+  // SQL query to insert multiple entries into TranLedgerMaster table
+  const query = `
+    Delete from TranSubLedgerMaster where AcCode =${AcCode} AND SubLedgerGroupCode =${SubLedgerGroupCode} ;
+
+    INSERT INTO TranSubLedgerMaster (AcCode, SubLedgerGroupCode, SubAcCode, OpBal, DeptCode, YearCode, UserID)
+    VALUES ${values};
+    `;
+
+  // Execute SQL query
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'TranLedger entries saved successfully' });
+    }
+  });
+});
+
+
+// Update a TranSubLedger entry
+// app.put('/api/tranSubLedgers/:acCode', (req, res) => {
+//   const { acCode } = req.params;
+//   const {
+//     SubAcCode,
+//     OpBal,
+//     TOpBal,
+//     Debit,
+//     Credit,
+//     CurBal,
+//     DeptCode,
+//     YearCode,
+//     UserID,
+//     SubLedgerGroupCode,
+//   } = req.body;
+//   const query = `
+//       UPDATE TranSubLedgerMaster
+//       SET SubAcCode='${SubAcCode}', OpBal='${OpBal}', TOpBal='${TOpBal}', Debit='${Debit}', Credit='${Credit}', CurBal='${CurBal}', DeptCode='${DeptCode}', YearCode='${YearCode}', UserID='${UserID}', SubLedgerGroupCode='${SubLedgerGroupCode}'
+//       WHERE AcCode='${acCode}';
+//     `;
+//   sql.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       if (result.rowsAffected && result.rowsAffected[0] > 0) {
+//         res.json({
+//           message: 'TranSubLedger updated successfully',
+//           AcCode: acCode,
+//           SubAcCode,
+//           OpBal,
+//           TOpBal,
+//           Debit,
+//           Credit,
+//           CurBal,
+//           DeptCode,
+//           YearCode,
+//           UserID,
+//           SubLedgerGroupCode,
+//         });
+//       } else {
+//         res.status(404).json({ error: 'Record not found' });
+//       }
+//     }
+//   });
+// });
+
+app.put('/api/tranSubLedgers/:acCode', (req, res) => {
+  const { acCode } = req.params;
+  const {
+    SubAcCode,
+    OpBal,
+    TOpBal,
+    Debit,
+    Credit,
+    CurBal,
+    DeptCode,
+    CompCode,
+    YearCode,
+    UserID,
+    SubLedgerGroupCode,
+  } = req.body;
+  const query = `
+      UPDATE TranSubLedgerMaster
+      SET  OpBal=${OpBal}, UserID='${UserID}'
+      WHERE AcCode=${acCode} AND SubLedgerGroupCode=${SubLedgerGroupCode} AND SubAcCode=${SubAcCode} AND  DeptCode=${DeptCode} AND YearCode=${YearCode} AND YearCode=${YearCode} ;
+    `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'TranSubLedger updated successfully',
+          AcCode: acCode,
+          SubAcCode,
+          OpBal,
+          TOpBal,
+          Debit,
+          Credit,
+          CurBal,
+          DeptCode,
+          YearCode,
+          UserID,
+          SubLedgerGroupCode,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// Delete a TranSubLedger entry
+app.delete('/api/tranSubLedgers/:acCode/:SubAcCode/:SubLedgerGroupCode', async (req, res) => {
+  const { acCode, SubAcCode, SubLedgerGroupCode } = req.params;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM TranSubLedgerMaster WHERE AcCode=${acCode} AND SubAcCode=${SubAcCode} AND SubLedgerGroupCode=${SubLedgerGroupCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'TranSubLedger deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+//TranLedgerMaster
+// GET all TranLedgerMaster entries
+app.get('/api/tranledgers', (req, res) => {
+  const query = 'SELECT * FROM TranLedgerMaster';
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json(result.recordset);
+    }
+  });
+});
+
+app.get('/api/getCr/:compcode/:deptcode', (req, res) => {
+  const { compcode, deptcode } = req.params;
+
+  // Correct the query string to separate queries with a semicolon
+  const query = `
+    select sum(opbal) as cramt from tranledgermaster where opbal > 0 and deptcode = ${deptcode} and compcode = ${compcode};
+    select sum(opbal) as dramt from tranledgermaster where opbal < 0 and deptcode = ${deptcode} and compcode = ${compcode};
+  `;
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      // Process the results from both queries
+      const cramt = result.recordsets[0][0].cramt || 0;
+      const dramt = result.recordsets[1][0].dramt || 0;
+
+      // Send the combined result
+      res.json({ cramt, dramt });
+    }
+  });
+});
+
+
+// app.get('/api/getCr/:compcode/:deptcode', (req, res) => {
+//   const { compcode , deptcode  } = req.params;
+
+//   const query = `select sum(opbal) as cramt from tranledgermaster where opbal > 0 and  deptcode = ${deptcode} and compcode = ${compcode}
+//                 select sum(opbal) as dramt from tranledgermaster where opbal < 0 and  deptcode = ${deptcode} and compcode = ${compcode}`;
+//   sql.query(query, (err, result) => {
+//     if (err) {
+//       console.log('Error:', err);
+//       res.status(500).json({ error: 'Internal server error' });
+//     } else {
+//       res.json(result.recordset);
+//     }
+//   });
+// });
+
+
+
+// POST a new TranLedgerMaster entry
+app.post('/api/tranledgers', (req, res) => {
+  const {
+    AcCode,
+    OpBal,
+    CompCode,
+    DeptCode,
+    YearCode,
+    UserID,
+  } = req.body;
+
+
+  const query = `
+      INSERT INTO TranLedgerMaster (AcCode, OpBal,CompCode, DeptCode, YearCode, UserID)
+      VALUES (${AcCode}, ${OpBal},${CompCode}, ${DeptCode}, ${YearCode}, '${UserID}');
+    `;
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'TranLedger created successfully' });
+    }
+  });
+});
+
+// Endpoint to handle saving multiple TranLedger entries
+app.post('/api/saveAllTranLedgers', (req, res) => {
+  const { requestData, DeptCode, YearCode, CompCode, UserID } = req.body; // Assuming requestData is an array of objects
+
+  // Prepare values for SQL query
+  const values = requestData.map(entry => `(
+    ${entry.AcCode},
+    ${entry.OpBal},
+    ${CompCode},
+    ${DeptCode},
+    ${YearCode},
+    '${UserID}'
+  )`).join(',');
+
+  // SQL query to insert multiple entries into TranLedgerMaster table
+  const query = `
+    Delete from TranLedgerMaster ;
+
+    INSERT INTO TranLedgerMaster (AcCode, OpBal, CompCode, DeptCode, YearCode, UserID)
+    VALUES ${values};
+  `;
+
+  // Execute SQL query
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'TranLedger entries saved successfully' });
+    }
+  });
+});
+
+// PUT (Update) an existing TranLedgerMaster entry
+app.put('/api/tranledgers/:AcCode', (req, res) => {
+  const { AcCode } = req.params;
+  const {
+    OpBal,
+    DeptCode,
+    YearCode,
+    CompCode,
+    UserID,
+  } = req.body;
+
+  const query = `
+      UPDATE TranLedgerMaster
+      SET OpBal=${OpBal}, CompCode=${CompCode}, DeptCode=${DeptCode}, YearCode=${YearCode}, UserID='${UserID}'
+      WHERE AcCode=${AcCode};
+    `;
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      if (result.rowsAffected && result.rowsAffected[0] > 0) {
+        res.json({
+          message: 'TranLedger updated successfully',
+          AcCode: AcCode,
+          OpBal,
+          YearCode,
+          UserID,
+        });
+      } else {
+        res.status(404).json({ error: 'Record not found' });
+      }
+    }
+  });
+});
+
+// DELETE a TranLedgerMaster entry
+app.delete('/api/tranledgers/:AcCode', async (req, res) => {
+  const { AcCode } = req.params;
+  const UserName = req.headers['username'];
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowMasterDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowMasterDelete } = userResults.recordset[0];
+
+        if (AllowMasterDelete === 1) {
+          // The user has permission to delete entries
+          const deleteQuery = `DELETE FROM TranLedgerMaster WHERE AcCode=${AcCode}`;
+
+          sql.query(deleteQuery, (deleteErr) => {
+            if (deleteErr) {
+              console.log('Error deleting entry:', deleteErr);
+              res.status(500).json({ error: 'Internal server error' });
+            } else {
+              res.json({ message: 'TranLedger deleted successfully' });
+            }
+          });
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+//directInward
+app.post('/api/singleDISave', authenticateToken, (req, res) => {
+  const {
+    EntryNo,
+    DoDate,
+    DONo,
+    TrDate,
+    ProductCode,
+    ItemCode,
+    TalukaCode,
+    GangCode2,
+    HamaliTypeCode2,
+    Weight,
+    Qty,
+    VehicleCode,
+    BuiltyTPNO,
+    CompCode,
+    DeptCode,
+    YearCode,
+    locationCode,
+    UserID,
+    editRoomId
+  } = req.body;
+
+  const query = `
+      DELETE FROM RRWagonEntry 
+      WHERE EntryNo = ${EntryNo}
+      AND Flag = 'DI' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} AND EntryNo = ${EntryNo} AND DesptachEntryNo = ${editRoomId} AND BiltiNo = ${BuiltyTPNO};
+
+      INSERT INTO RRWagonEntry (
+        EntryNo,
+        DONo,
+        TrDate,
+        DoDate,
+        ProductCode,
+        ItemCode,
+        TalukaCode,
+        GangCode2,
+        HamaliTypeCode2,
+        Qty,
+        Weight,
+        VehicleCode,
+        BuiltyTPNO,
+        locationCode,
+        DeptCode,
+        YearCode,
+        Compcode,
+        UserID,
+        DesptachEntryNo,
+        Flag
+      ) VALUES (
+        ${EntryNo}, 
+        '${DONo}', 
+        '${TrDate}', 
+        '${DoDate}',
+        ${ProductCode},
+        ${ItemCode},
+        ${TalukaCode}, 
+        ${GangCode2}, 
+        ${HamaliTypeCode2},
+        ${Qty}, 
+        ${Weight}, 
+        '${VehicleCode}',
+        ${BuiltyTPNO},
+        ${locationCode},
+        ${DeptCode},
+        ${YearCode},
+        ${CompCode},
+        '${UserID}',
+        ${editRoomId},
+        'DI'
+      );
+    `;
+
+  sql.query(query, (err) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Entry saved successfully' });
+    }
+  });
+});
+
+app.post('/api/DirectInward/:EntryNo', authenticateToken, (req, res) => {
+  const entryNo = req.params.EntryNo;
+  const {requestData, CompCode,YearCode,DeptCode} = req.body;
+  const values = requestData.map(entry => `(
+    ${entryNo}, 
+    '${entry.TrDate}', 
+    '${entry.DONo}', 
+    '${entry.DoDate ? entry.DoDate : entry.TrMonth}',
+    ${entry.ProductCode},
+    ${entry.YojanaCode ? entry.YojanaCode : entry.editRoomId},
+    ${entry.TalukaCode}, 
+    ${entry.GangCode}, 
+    ${entry.HamaliTypeCode},
+    ${entry.Qty}, 
+    ${entry.Weight}, 
+    '${entry.VehicleCode}',
+    ${entry.BuiltyTPNO || entry.BiltiNo},
+    ${entry.locationCode || entry.LocationCode},
+    ${entry.DeptCode},
+    ${entry.YearCode},
+    ${entry.CompCode ? entry.CompCode : entry.Compcode},
+    '${entry.UserID}',
+    ${entry.editRoomId ? entry.editRoomId : entry.DesptachEntryNo},
+    'DI'
+    )`).join(',');
+
+  let query = `
+    delete from RRWagonEntry where EntryNo = ${entryNo} AND Flag = 'DI' AND CompCode = ${CompCode} AND YearCode = ${YearCode} AND DeptCode = ${DeptCode};
+
+    INSERT INTO RRWagonEntry (
+      EntryNo,
+      TrDate,
+      DONo,
+      TrMonth,
+      ProductCode,
+      YojanaCode,
+      TalukaCode,
+      GangCode1,
+      HamaliTypeCode1,
+      Qty,
+      Weight,
+      VehicleCode,
+      BiltiNo,
+      LocationCode,
+      DeptCode,
+      YearCode,
+      Compcode,
+      UserID,
+      DesptachEntryNo,
+      Flag
+    ) VALUES ${values};`;
+
+
+  sql.query(query, (err, result) => {
+    if (err) {
+      console.log('Error:', err);
+      console.log('query:', query);
+
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.json({ message: 'Data saved successfully' });
+    }
+  });
+});
+
+app.delete('/api/DirectInward/:EntryNo', authenticateToken, async (req, res) => {
+  const EntryNo = req.params.EntryNo;
+  const UserName = req.headers['username'];
+  const {CompCode,YearCode,DeptCode} = req.query;
+
+  try {
+    // Fetch user permissions from the database based on the user making the request
+    const userPermissionsQuery = `SELECT AllowEntryDelete FROM Users WHERE UserName='${UserName}'`;
+
+    sql.query(userPermissionsQuery, async (userErr, userResults) => {
+      if (userErr) {
+        console.log('Error fetching user permissions:', userErr);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Check if user results are not empty
+      if (userResults.recordset && userResults.recordset.length > 0) {
+        // Check if user has permission to delete entries
+        const { AllowEntryDelete } = userResults.recordset[0];
+
+        if (AllowEntryDelete === 1) {
+          // The user has permission to delete entries
+          const query = `DELETE FROM RRWagonEntry WHERE EntryNo = ${EntryNo} AND Flag ='DI' AND DeptCode = ${DeptCode} AND YearCode = ${YearCode} AND Compcode = ${CompCode} `;
+
+          try {
+            await sql.query(query);
+            res.json({ message: 'Success' });
+          } catch (error) {
+            console.log('Error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+          }
+        } else {
+          // User does not have permission to delete entries
+          res.status(403).json({ error: 'Permission denied. You do not have the necessary permissions to delete entries.' });
+        }
+      } else {
+        // User not found in the database
+        res.status(404).json({ error: 'User not found.' });
+      }
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
